@@ -9,6 +9,8 @@ namespace MapTest;
 public class MapControl : UserControl
 {
     private readonly MapRenderOperation _renderOperation;
+    private SKPoint _mouseWheelZoomingCapturedPosition;
+    private bool _isMouseWheelZooming;
 
     public MapControl()
     {
@@ -59,13 +61,54 @@ public class MapControl : UserControl
 
         mappedPoint = ConvertPointOnControlToMapPosition(mappedPoint);
 
-        _renderOperation.ZoomX = mappedPoint.X;
-        _renderOperation.ZoomY = mappedPoint.Y;
-        _renderOperation.ZoomExtent = false;
-
-        InvalidateVisual();
+        Zoom(2, mappedPoint.X, mappedPoint.Y, false, true);
         
         e.Handled = true;
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        const double step = 0.05;
+
+        var position = e.GetPosition(this);
+
+        if (!_isMouseWheelZooming)
+        {
+            _isMouseWheelZooming = true;
+            
+            _mouseWheelZoomingCapturedPosition = new SKPoint((float)position.X, (float)position.Y);
+            _mouseWheelZoomingCapturedPosition = ConvertPointOnControlToMapPosition(_mouseWheelZoomingCapturedPosition);
+        }
+
+        var increment = e.Delta.Y == 0
+            ? 0
+            : e.Delta.Y > 0
+                ? step
+                : -step;
+
+        var newZoomLevel = (float)(_renderOperation.ZoomLevel + increment);
+        
+        if (newZoomLevel < 0.1)
+        {
+            newZoomLevel = 0.1f;
+        }
+        
+        Zoom(newZoomLevel, _mouseWheelZoomingCapturedPosition.X, _mouseWheelZoomingCapturedPosition.Y, false, false);
+        
+        e.Handled = true;
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        if (_isMouseWheelZooming)
+        {
+            _isMouseWheelZooming = false;
+            _mouseWheelZoomingCapturedPosition = SKPoint.Empty;
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPointerMoved(e);
     }
 
     private SKPoint ConvertPointOnControlToMapPosition(SKPoint mappedPoint)
@@ -83,12 +126,14 @@ public class MapControl : UserControl
         return mappedPoint;
     }
 
-    public void Zoom(float level, float zoomX, float zoomY, bool zoomExtent)
+    public void Zoom(float level, float zoomX, float zoomY, bool zoomExtent, bool centerOnPosition)
     {
         _renderOperation.ZoomLevel = level;
         _renderOperation.ZoomX = zoomX;
         _renderOperation.ZoomY = zoomY;
         _renderOperation.ZoomExtent = zoomExtent;
+        _renderOperation.CenterOnPosition = centerOnPosition;
+
         InvalidateVisual();
     }
 }

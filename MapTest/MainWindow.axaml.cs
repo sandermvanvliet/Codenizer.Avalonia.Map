@@ -16,7 +16,7 @@ namespace MapTest
             var zoomX = float.Parse(ZoomX.Text);
             var zoomY = float.Parse(ZoomY.Text);
 
-            Map.Zoom(zoomLevel, zoomX, zoomY, ZoomExtent.IsChecked.Value);
+            Map.Zoom(zoomLevel, zoomX, zoomY, ZoomExtent.IsChecked.Value, true);
         }
     }
 }

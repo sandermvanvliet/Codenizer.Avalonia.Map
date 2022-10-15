@@ -44,6 +44,7 @@ public class MapRenderOperation : ICustomDrawOperation
     public float ZoomX { get; set; }
     public float ZoomY { get; set; }
     public bool ZoomExtent { get; set; }
+    public bool CenterOnPosition { get; set; }
 
     public void Render(IDrawingContextImpl context)
     {
@@ -84,11 +85,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
             var zoomLevel = (float)ratio;
             
-            ZoomOnPoint(canvas, zoomLevel, bounds.MidX, bounds.MidY);
+            ZoomOnPoint(canvas, zoomLevel, bounds.MidX, bounds.MidY, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
         {
-            ZoomOnPoint(canvas, ZoomLevel, ZoomX, ZoomY);
+            ZoomOnPoint(canvas, ZoomLevel, ZoomX, ZoomY, CenterOnPosition);
         }
         else
         {
@@ -114,19 +115,35 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.Flush();
     }
 
-    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y)
+    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
         var centerX = _bitmap.Width / 2;
         var centerY = _bitmap.Height / 2;
 
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY);
+        SKMatrix scaleMatrix;
+
+        if(centerOnPosition)
+        {
+            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY);
+        }
+        else
+        {
+            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
+        }
 
         // This works:
         var translateX = centerX - x;
         var translateY = centerY - y;
         var translateMatrix = SKMatrix.CreateTranslation(zoomLevel * translateX, zoomLevel * translateY);
 
-        canvas.SetMatrix(canvas.TotalMatrix.PostConcat(scaleMatrix).PostConcat(translateMatrix));
+        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
+
+        if (centerOnPosition)
+        {
+            matrix = matrix.PostConcat(translateMatrix);
+        }
+
+        canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
     }
