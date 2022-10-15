@@ -90,6 +90,10 @@ public class MapRenderOperation : ICustomDrawOperation
         {
             ZoomOnPoint(canvas, ZoomLevel, ZoomX, ZoomY);
         }
+        else
+        {
+            LogicalMatrix = SKMatrix.Empty;
+        }
 
         canvas.DrawRect(0, 0, 1000, 1000, _redPaint);
         canvas.DrawRect(100, 100, 800, 800, _greenPaint);
@@ -123,7 +127,11 @@ public class MapRenderOperation : ICustomDrawOperation
         var translateMatrix = SKMatrix.CreateTranslation(zoomLevel * translateX, zoomLevel * translateY);
 
         canvas.SetMatrix(canvas.TotalMatrix.PostConcat(scaleMatrix).PostConcat(translateMatrix));
+
+        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
     }
+
+    public SKMatrix LogicalMatrix { get; private set; }
 
     private SKRect Pad(SKRect bounds, int padding)
     {
