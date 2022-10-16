@@ -15,6 +15,7 @@ public class MapRenderOperation : ICustomDrawOperation
     private SKBitmap _bitmap;
     private Rect _bounds;
     private readonly SKPaint _crossHairPaint;
+    private SKRect _mapObjectsBounds;
 
     public MapRenderOperation()
     {
@@ -144,8 +145,7 @@ public class MapRenderOperation : ICustomDrawOperation
             ? SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY) 
             : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
         
-        var bitmapBounds = new SKRect(0, 0, _bitmap.Width, _bitmap.Height);
-        var newBounds = scaleMatrix.MapRect(bitmapBounds);
+        var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
         if (newBounds.Width < Bounds.Width)
         {
             // Clip the lower zoom to ensure that you can't zoom out
@@ -157,6 +157,22 @@ public class MapRenderOperation : ICustomDrawOperation
             zoomLevel = ZoomLevel;
             
             scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
+
+            // Ensure that when zooming out the bitmap never
+            // appears away from the origin (top/left 0,0)
+            // so that there won't be any gaps on screen.
+            var topLeftMapped = scaleMatrix.MapPoint(_mapObjectsBounds.Left, _mapObjectsBounds.Top);
+
+            if (topLeftMapped.X < 0 || topLeftMapped.Y < 0)
+            {
+                var scaleTranslateX = -Math.Min(0, topLeftMapped.X);
+                var scaleTranslateY = -Math.Min(0, topLeftMapped.Y);
+
+                if (scaleTranslateX != 0 || scaleTranslateY != 0)
+                {
+                    scaleMatrix = scaleMatrix.PostConcat(SKMatrix.CreateTranslation(scaleTranslateX, scaleTranslateY));
+                }
+            }
         }
 
         // This works:
@@ -171,19 +187,6 @@ public class MapRenderOperation : ICustomDrawOperation
             matrix = matrix.PostConcat(translateMatrix);
         }
         
-        // Ensure that when zooming out the bitmap never
-        // appears away from the origin (top/left 0,0)
-        // so that there won't be any gaps on screen.
-        var topLeft = matrix.MapPoint(0, 0);
-
-        if (topLeft.X > 0 || topLeft.Y > 0)
-        {
-            var clipTranslateX = topLeft.X > 0 ? topLeft.X : 0;
-            var clipTranslateY = topLeft.Y > 0 ? topLeft.Y : 0;
-            var minZoomLevelTranslate = SKMatrix.CreateTranslation(-clipTranslateX, -clipTranslateY);
-            matrix = matrix.PostConcat(minZoomLevelTranslate);
-        }
-
         canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
@@ -261,8 +264,8 @@ public class MapRenderOperation : ICustomDrawOperation
             }
         }
 
-        var mapObjectsBounds = new SKRect(left, top, right, bottom);
-
-        return new SKBitmap((int)mapObjectsBounds.Width, (int)mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+        _mapObjectsBounds = new SKRect(left, top, right, bottom);
+        
+        return new SKBitmap((int)_mapObjectsBounds.Width, (int)_mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }

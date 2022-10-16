@@ -13,6 +13,8 @@ namespace MapTest
             Map.MapObjects.Add(new Square("greenSquare", 100, 100, 800, 800, "#00FF00"));
             Map.MapObjects.Add(new Square("blueSquare", 400, 400, 200, 200, "#0000FF"));
             Map.MapObjects.Add(new Square("yellowSquare", 700, 200, 100, 100, "#FFCC00"));
+            Map.MapObjects.Add(new Square("purpleSquare", -100, -100, 100, 100, "#690fad"));
+
 
             Map.MapObjects.Add(new Point("point1", 100, 100, 2, "#000000"));
             Map.MapObjects.Add(new Point("point2", 400, 400, 2, "#000000"));
