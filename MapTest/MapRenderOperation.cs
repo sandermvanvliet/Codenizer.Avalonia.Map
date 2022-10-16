@@ -39,15 +39,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void AdjustZoomLevelToBitmapBounds()
     {
-        var zoomLevel = (float)(Bounds.Width / _bitmap.Width);
-
-        // Handle situation where the bitmap is taller than wide
-        if (_bitmap.Height * zoomLevel > Bounds.Height)
-        {
-            zoomLevel = (float)(Bounds.Height / _bitmap.Height);
-        }
-
-        ZoomLevel = zoomLevel;
+        ZoomLevel = CalculateScale(
+            (float)Bounds.Width,
+            (float)Bounds.Height,
+            _bitmap.Width,
+            _bitmap.Height);
     }
 
     public Rect Bounds
@@ -104,8 +100,12 @@ public class MapRenderOperation : ICustomDrawOperation
             var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
             var paddedElementBounds = Pad(elementBounds, 20);
 
-            var zoomLevel = (float)Bounds.Width / paddedElementBounds.Width;
-            
+            var zoomLevel = CalculateScale(
+                (float)Bounds.Width, 
+                (float)Bounds.Height, 
+                paddedElementBounds.Width, 
+                paddedElementBounds.Height);
+
             ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
@@ -127,6 +127,21 @@ public class MapRenderOperation : ICustomDrawOperation
         RenderCrossHair(canvas);
 
         canvas.Flush();
+    }
+
+    private static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
+    {
+        var scale = outerWidth / innerWidth;
+
+        // Check whether the inner bounds are taller
+        // than wide. If that's the case the scale
+        // needs to be calculated using height instead.
+        if (scale * innerHeight > outerHeight)
+        {
+            scale = outerHeight / innerHeight;
+        }
+
+        return scale;
     }
 
     private void RenderCrossHair(SKCanvas canvas)
