@@ -29,7 +29,7 @@ public class MapRenderOperation : ICustomDrawOperation
         MapObjects.CollectionChanged += (_, _) =>
         {
             _bitmap = CreateBitmapFromMapObjectsBounds();
-
+            
             if (!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
             {
                 AdjustZoomLevelToBitmapBounds();
@@ -146,9 +146,9 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void RenderCrossHair(SKCanvas canvas)
     {
-        canvas.DrawLine(500, 0, 500, 1000, _crossHairPaint);
-        canvas.DrawLine(0, 500, 1000, 500, _crossHairPaint);
-        canvas.DrawCircle(500, 500, 2, _crossHairPaint);
+        canvas.DrawLine(_viewPortCenter.X, 0, _viewPortCenter.X, (float)Bounds.Height, _crossHairPaint);
+        canvas.DrawLine(0, _viewPortCenter.Y, (float)Bounds.Width, _viewPortCenter.Y, _crossHairPaint);
+        canvas.DrawCircle(_viewPortCenter.X, _viewPortCenter.Y, 2, _crossHairPaint);
     }
 
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
