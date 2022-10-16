@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 using Avalonia.Platform;
@@ -29,7 +30,7 @@ public class MapRenderOperation : ICustomDrawOperation
         {
             _bitmap = CreateBitmapFromMapObjectsBounds();
 
-            if(!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
+            if (!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
             {
                 AdjustZoomLevelToBitmapBounds();
             }
@@ -102,7 +103,7 @@ public class MapRenderOperation : ICustomDrawOperation
             var bounds = Pad(yellowSquareBounds, 20);
 
             var zoomLevel = _bitmap.Width / bounds.Width;
-            
+
             ZoomOnPoint(canvas, zoomLevel, bounds.MidX, bounds.MidY, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
@@ -135,16 +136,16 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
-        var centerX = _bitmap.Width / 2;
-        var centerY = _bitmap.Height / 2;
+        var centerX = _mapObjectsBounds.MidX;
+        var centerY = _mapObjectsBounds.MidY;
 
         // It looks like we're centering on the wrong position here but
         // have no fear, the actual centering happens with a translation
         // below.
-        var scaleMatrix = centerOnPosition 
-            ? SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY) 
+        var scaleMatrix = centerOnPosition
+            ? SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0)
             : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
-        
+
         var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
         if (newBounds.Width < Bounds.Width)
         {
@@ -155,7 +156,7 @@ public class MapRenderOperation : ICustomDrawOperation
             // Copy the new zoom level because it's used below for
             // the translation step
             zoomLevel = ZoomLevel;
-            
+
             scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
 
             // Ensure that when zooming out the bitmap never
@@ -175,18 +176,27 @@ public class MapRenderOperation : ICustomDrawOperation
             }
         }
 
-        // This works:
-        var translateX = centerX - x;
-        var translateY = centerY - y;
-        var translateMatrix = SKMatrix.CreateTranslation(zoomLevel * translateX, zoomLevel * translateY);
-
         var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
 
         if (centerOnPosition)
         {
+            var mappedDesiredCenter = matrix.MapPoint(x, y);
+            Debug.WriteLine($" Mapped desired center: {mappedDesiredCenter}");
+
+            var nativeZoom = (float)Bounds.Width / _mapObjectsBounds.Width;
+            var invertedBitmapCenter = matrix.Invert().MapPoint(_mapObjectsBounds.MidX, _mapObjectsBounds.MidY);
+            var offsetX = (float)(Bounds.Width / 2) - (invertedBitmapCenter.X * nativeZoom);
+            var offsetY = (float)(Bounds.Height / 2) - (invertedBitmapCenter.Y * nativeZoom);
+
+            var offsetMapped = matrix.MapPoint(offsetX, offsetY);
+
+            // This works:
+            var translateX = mappedDesiredCenter.X - offsetMapped.X;
+            var translateY = mappedDesiredCenter.Y - offsetMapped.Y;
+            var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
             matrix = matrix.PostConcat(translateMatrix);
         }
-        
+
         canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
@@ -252,12 +262,12 @@ public class MapRenderOperation : ICustomDrawOperation
             {
                 top = mapObject.Bounds.Top;
             }
-            
+
             if (mapObject.Bounds.Right > right)
             {
                 right = mapObject.Bounds.Right;
             }
-            
+
             if (mapObject.Bounds.Bottom > bottom)
             {
                 bottom = mapObject.Bounds.Bottom;
@@ -265,7 +275,7 @@ public class MapRenderOperation : ICustomDrawOperation
         }
 
         _mapObjectsBounds = new SKRect(left, top, right, bottom);
-        
+
         return new SKBitmap((int)_mapObjectsBounds.Width, (int)_mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }

@@ -34,9 +34,9 @@
 			<TextBlock Grid.Column="0" Grid.Row="2">Y</TextBlock>
 			<TextBlock Grid.Column="0" Grid.Row="3">Extent</TextBlock>
 
-            <TextBox Grid.Column="1" Grid.Row="0" Height="24" Name="ZoomLevel" />
-			<TextBox Grid.Column="1" Grid.Row="1" Height="24" Name="ZoomX" />
-			<TextBox Grid.Column="1" Grid.Row="2" Height="24" Name="ZoomY" />
+            <TextBox Grid.Column="1" Grid.Row="0" Height="24" Name="ZoomLevel" Text="2" />
+			<TextBox Grid.Column="1" Grid.Row="1" Height="24" Name="ZoomX" Text="700" />
+			<TextBox Grid.Column="1" Grid.Row="2" Height="24" Name="ZoomY" Text="200" />
 
 			<CheckBox Grid.Column="1" Grid.Row="3" Name="ZoomExtent" />
 			<Button Grid.Column="1" Grid.Row="4" Content="Zoom" Click="Button_OnClick" />
