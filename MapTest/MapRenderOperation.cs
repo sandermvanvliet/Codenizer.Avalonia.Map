@@ -114,7 +114,7 @@ public class MapRenderOperation : ICustomDrawOperation
         }
         else
         {
-            LogicalMatrix = SKMatrix.Empty;
+            ZoomOnPoint(canvas, 1, 0, 0, false);
         }
 
         foreach (MapObject mapObject in MapObjects)
@@ -280,6 +280,13 @@ public class MapRenderOperation : ICustomDrawOperation
 
         _mapObjectsBounds = new SKRect(left, top, right, bottom);
 
-        return new SKBitmap((int)_mapObjectsBounds.Width, (int)_mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+        var width = _mapObjectsBounds.Width;
+
+        if (_mapObjectsBounds.Width < Bounds.Width)
+        {
+            width = (float)Bounds.Width;
+        }
+
+        return new SKBitmap((int)width, (int)_mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }
