@@ -12,13 +12,16 @@ namespace MapTest;
 public class MapRenderOperation : ICustomDrawOperation
 {
     private static readonly SKColor CanvasBackgroundColor = SKColor.Parse("#FFFFFF");
-    private SKBitmap? _bitmap;
+    private SKBitmap _bitmap;
     private Rect _bounds;
     private readonly SKPaint _crossHairPaint;
 
     public MapRenderOperation()
     {
         _crossHairPaint = new SKPaint { Color = SKColor.Parse("#FF0000"), Style = SKPaintStyle.Fill };
+
+        // This is to ensure we always have a bitmap to work with
+        _bitmap = CreateBitmapFromControlBounds();
     }
 
     public Rect Bounds
@@ -71,9 +74,7 @@ public class MapRenderOperation : ICustomDrawOperation
             var yellowSquareBounds = MapObjects.Single(o => o.Name == "yellowSquare").Bounds;
             var bounds = Pad(yellowSquareBounds, 20);
 
-            var ratio = Bounds.Width / bounds.Width;
-
-            var zoomLevel = (float)ratio;
+            var zoomLevel = _bitmap.Width / bounds.Width;
             
             ZoomOnPoint(canvas, zoomLevel, bounds.MidX, bounds.MidY, true);
         }
@@ -107,19 +108,15 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
-        var centerX = _bitmap!.Width / 2;
+        var centerX = _bitmap.Width / 2;
         var centerY = _bitmap.Height / 2;
 
-        SKMatrix scaleMatrix;
-
-        if(centerOnPosition)
-        {
-            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY);
-        }
-        else
-        {
-            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
-        }
+        // It looks like we're centering on the wrong position here but
+        // have no fear, the actual centering happens with a translation
+        // below.
+        var scaleMatrix = centerOnPosition 
+            ? SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY) 
+            : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
 
         var newBounds = scaleMatrix.MapRect(Bounds.ToSKRect());
         if (newBounds.Width < Bounds.Width)
@@ -181,9 +178,14 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void InitializeBitmap()
     {
-        _bitmap = new SKBitmap((int)Bounds.Width, (int)Bounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+        _bitmap = CreateBitmapFromControlBounds();
 
         using var canvas = new SKCanvas(_bitmap);
         canvas.Clear(CanvasBackgroundColor);
+    }
+
+    private SKBitmap CreateBitmapFromControlBounds()
+    {
+        return new SKBitmap((int)Bounds.Width, (int)Bounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }
