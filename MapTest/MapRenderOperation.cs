@@ -63,8 +63,6 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void RenderCanvas(SKCanvas canvas)
     {
-        canvas.Clear(CanvasBackgroundColor);
-
         canvas.Save();
 
         if (ZoomExtent)
