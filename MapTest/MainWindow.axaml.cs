@@ -10,8 +10,8 @@ namespace MapTest
             InitializeComponent();
 
             //Squares1000();
-            Squares1100();
-            //SquaresWithNegativeFromOrigin();
+            //Squares1100();
+            SquaresWithNegativeFromOrigin();
         }
 
         private void Squares1000()

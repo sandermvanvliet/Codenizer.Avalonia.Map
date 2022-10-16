@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 using Avalonia.Platform;
@@ -17,6 +16,7 @@ public class MapRenderOperation : ICustomDrawOperation
     private Rect _bounds;
     private readonly SKPaint _crossHairPaint;
     private SKRect _mapObjectsBounds;
+    private SKPoint _viewPortCenter;
 
     public MapRenderOperation()
     {
@@ -56,6 +56,8 @@ public class MapRenderOperation : ICustomDrawOperation
         set
         {
             _bounds = value;
+            
+            _viewPortCenter = new SKPoint((float)_bounds.Width / 2, (float)_bounds.Height / 2);
 
             InitializeBitmap();
         }
@@ -136,9 +138,6 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
-        var centerX = _mapObjectsBounds.MidX;
-        var centerY = _mapObjectsBounds.MidY;
-
         // It looks like we're centering on the wrong position here but
         // have no fear, the actual centering happens with a translation
         // below.
@@ -152,10 +151,6 @@ public class MapRenderOperation : ICustomDrawOperation
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
             AdjustZoomLevelToBitmapBounds();
-
-            // Copy the new zoom level because it's used below for
-            // the translation step
-            zoomLevel = ZoomLevel;
 
             scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
 
@@ -181,19 +176,12 @@ public class MapRenderOperation : ICustomDrawOperation
         if (centerOnPosition)
         {
             var mappedDesiredCenter = matrix.MapPoint(x, y);
-            Debug.WriteLine($" Mapped desired center: {mappedDesiredCenter}");
-
-            var nativeZoom = (float)Bounds.Width / _mapObjectsBounds.Width;
-            var invertedBitmapCenter = matrix.Invert().MapPoint(_mapObjectsBounds.MidX, _mapObjectsBounds.MidY);
-            var offsetX = (float)(Bounds.Width / 2) - (invertedBitmapCenter.X * nativeZoom);
-            var offsetY = (float)(Bounds.Height / 2) - (invertedBitmapCenter.Y * nativeZoom);
-
-            var offsetMapped = matrix.MapPoint(offsetX, offsetY);
-
-            // This works:
-            var translateX = mappedDesiredCenter.X - offsetMapped.X;
-            var translateY = mappedDesiredCenter.Y - offsetMapped.Y;
+            
+            var translateX = mappedDesiredCenter.X - _viewPortCenter.X;
+            var translateY = mappedDesiredCenter.Y - _viewPortCenter.Y;
+            
             var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
+
             matrix = matrix.PostConcat(translateMatrix);
         }
 
