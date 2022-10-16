@@ -12,7 +12,8 @@ namespace MapTest
             //Squares1000();
             //Squares1100();
             //SquaresWithNegativeFromOrigin();
-            SquaresPortrait();
+            //SquaresPortrait();
+            SquaresLandscape();
         }
 
         private void Squares1000()
@@ -66,6 +67,19 @@ namespace MapTest
             Map.MapObjects.Add(new Point("point2", 100, 400, 2, "#000000"));
             Map.MapObjects.Add(new Point("point3", 300, 200, 2, "#000000"));
             Map.MapObjects.Add(new Point("point4", 350, 250, 2, "#000000"));
+        }
+
+        private void SquaresLandscape()
+        {
+            Map.MapObjects.Add(new Square("redSquare", 0, 0, 1000, 400, "#FF0000"));
+            Map.MapObjects.Add(new Square("greenSquare", 100, 50, 800, 300, "#00FF00"));
+            Map.MapObjects.Add(new Square("blueSquare", 400, 100, 200, 200, "#0000FF"));
+            Map.MapObjects.Add(new Square("yellowSquare", 200, 300, 100, 100, "#FFCC00"));
+                
+            Map.MapObjects.Add(new Point("point1", 100, 50, 2, "#000000"));
+            Map.MapObjects.Add(new Point("point2", 400, 100, 2, "#000000"));
+            Map.MapObjects.Add(new Point("point3", 200, 300, 2, "#000000"));
+            Map.MapObjects.Add(new Point("point4", 250, 350, 2, "#000000"));
         }
 
         private void Button_OnClick(object? sender, RoutedEventArgs e)

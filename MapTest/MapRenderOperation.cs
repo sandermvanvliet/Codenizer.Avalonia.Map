@@ -203,6 +203,20 @@ public class MapRenderOperation : ICustomDrawOperation
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
         }
 
+        if (newBounds.Height < Bounds.Height)
+        {
+            // As we've already corrected for the aspect ratio
+            // of the map objects bitmap, it turns out that
+            // this one is indeed wider than tall.
+            // To make it look nice we should center the
+            // bitmap.
+            var offset = (Bounds.Height - newBounds.Height) / 2;
+
+            var translateMatrix = SKMatrix.CreateTranslation(0, (float)offset);
+
+            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
+        }
+
         var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
 
         if (centerOnPosition)
