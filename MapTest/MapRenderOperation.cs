@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
@@ -12,21 +14,11 @@ public class MapRenderOperation : ICustomDrawOperation
     private static readonly SKColor CanvasBackgroundColor = SKColor.Parse("#FFFFFF");
     private SKBitmap? _bitmap;
     private Rect _bounds;
-    private readonly SKFont _font;
-    private readonly SKPaint _textPaint;
-    private readonly SKPaint _orangePaint;
-    private readonly SKPaint _bluePaint;
-    private readonly SKPaint _greenPaint;
-    private readonly SKPaint _redPaint;
+    private readonly SKPaint _crossHairPaint;
 
     public MapRenderOperation()
     {
-        _font = new SKFont(SKTypeface.Default);
-        _textPaint = new SKPaint { Color = SKColor.Parse("#000000") };
-        _orangePaint = new SKPaint { Color = SKColor.Parse("#FFCC00"), Style = SKPaintStyle.Fill };
-        _bluePaint = new SKPaint { Color = SKColor.Parse("#0000FF"), Style = SKPaintStyle.Fill };
-        _greenPaint = new SKPaint { Color = SKColor.Parse("#00FF00"), Style = SKPaintStyle.Fill };
-        _redPaint = new SKPaint { Color = SKColor.Parse("#FF0000"), Style = SKPaintStyle.Fill };
+        _crossHairPaint = new SKPaint { Color = SKColor.Parse("#FF0000"), Style = SKPaintStyle.Fill };
     }
 
     public Rect Bounds
@@ -45,6 +37,7 @@ public class MapRenderOperation : ICustomDrawOperation
     public float ZoomY { get; set; }
     public bool ZoomExtent { get; set; }
     public bool CenterOnPosition { get; set; }
+    public List<MapObject> MapObjects { get; } = new();
 
     public void Render(IDrawingContextImpl context)
     {
@@ -77,8 +70,7 @@ public class MapRenderOperation : ICustomDrawOperation
         if (ZoomExtent)
         {
             // Hard code to the blue square
-            var blueSquareBounds = new SKRect(400, 400, 600, 600);
-            var yellowSquareBounds = new SKRect(700, 200, 800, 300);
+            var yellowSquareBounds = MapObjects.Single(o => o.Name == "yellowSquare").Bounds;
             var bounds = Pad(yellowSquareBounds, 20);
 
             var ratio = Bounds.Width / bounds.Width;
@@ -96,28 +88,28 @@ public class MapRenderOperation : ICustomDrawOperation
             LogicalMatrix = SKMatrix.Empty;
         }
 
-        canvas.DrawRect(0, 0, 1000, 1000, _redPaint);
-        canvas.DrawRect(100, 100, 800, 800, _greenPaint);
-        canvas.DrawRect(400, 400, 200, 200, _bluePaint);
-        canvas.DrawRect(700, 200, 100, 100, _orangePaint);
-
-        DrawPointMarker(canvas, 100, 100);
-        DrawPointMarker(canvas, 400, 400);
-        DrawPointMarker(canvas, 750, 250);
-        DrawPointMarker(canvas, 700, 200);
+        foreach (MapObject mapObject in MapObjects)
+        {
+            mapObject.Render(canvas);
+        }
 
         canvas.Restore();
 
-        canvas.DrawLine(500, 0, 500, 1000, _redPaint);
-        canvas.DrawLine(0, 500, 1000, 500, _redPaint);
-        canvas.DrawCircle(500,500,2, _redPaint);
+        RenderCrossHair(canvas);
 
         canvas.Flush();
     }
 
+    private void RenderCrossHair(SKCanvas canvas)
+    {
+        canvas.DrawLine(500, 0, 500, 1000, _crossHairPaint);
+        canvas.DrawLine(0, 500, 1000, 500, _crossHairPaint);
+        canvas.DrawCircle(500, 500, 2, _crossHairPaint);
+    }
+
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
-        var centerX = _bitmap.Width / 2;
+        var centerX = _bitmap!.Width / 2;
         var centerY = _bitmap.Height / 2;
 
         SKMatrix scaleMatrix;
@@ -166,7 +158,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public SKMatrix LogicalMatrix { get; private set; }
 
-    private SKRect Pad(SKRect bounds, int padding)
+    private static SKRect Pad(SKRect bounds, int padding)
     {
         return new SKRect(
             bounds.Left - padding,
@@ -175,17 +167,11 @@ public class MapRenderOperation : ICustomDrawOperation
             bounds.Bottom + padding);
     }
 
-    private void DrawPointMarker(SKCanvas canvas, int x, int y)
-    {
-        canvas.DrawCircle(x, y, 2, _textPaint);
-        canvas.DrawText($"{x}x{y}", x, y, _font, _textPaint);
-    }
-
     public void Dispose()
     {
     }
 
-    public bool HitTest(Point p)
+    public bool HitTest(Avalonia.Point p)
     {
         return false;
     }
