@@ -131,6 +131,22 @@ public class MapRenderOperation : ICustomDrawOperation
             scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
         }
 
+        var newBounds = scaleMatrix.MapRect(Bounds.ToSKRect());
+        if (newBounds.Width < Bounds.Width)
+        {
+            // Clip the lower zoom to ensure that you can't zoom out
+            // further than the whole object being visible.
+
+            zoomLevel = (float)Bounds.Width / 1000;
+            
+            // Store the new zoom level so that the MapControl
+            // can obtain it and use it for mouse wheel zoom
+            // increments etc.
+            ZoomLevel = zoomLevel;
+
+            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
+        }
+
         // This works:
         var translateX = centerX - x;
         var translateY = centerY - y;
