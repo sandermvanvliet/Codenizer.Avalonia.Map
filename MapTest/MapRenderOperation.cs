@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Platform;
@@ -22,6 +22,30 @@ public class MapRenderOperation : ICustomDrawOperation
 
         // This is to ensure we always have a bitmap to work with
         _bitmap = CreateBitmapFromControlBounds();
+
+        MapObjects = new ObservableCollection<MapObject>();
+        MapObjects.CollectionChanged += (_, _) =>
+        {
+            _bitmap = CreateBitmapFromMapObjectsBounds();
+
+            if(!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
+            {
+                AdjustZoomLevelToBitmapBounds();
+            }
+        };
+    }
+
+    private void AdjustZoomLevelToBitmapBounds()
+    {
+        var zoomLevel = (float)(Bounds.Width / _bitmap.Width);
+
+        // Handle situation where the bitmap is taller than wide
+        if (_bitmap.Height * zoomLevel > Bounds.Height)
+        {
+            zoomLevel = (float)(Bounds.Height / _bitmap.Height);
+        }
+
+        ZoomLevel = zoomLevel;
     }
 
     public Rect Bounds
@@ -40,7 +64,7 @@ public class MapRenderOperation : ICustomDrawOperation
     public float ZoomY { get; set; }
     public bool ZoomExtent { get; set; }
     public bool CenterOnPosition { get; set; }
-    public List<MapObject> MapObjects { get; } = new();
+    public ObservableCollection<MapObject> MapObjects { get; }
 
     public void Render(IDrawingContextImpl context)
     {
@@ -67,6 +91,8 @@ public class MapRenderOperation : ICustomDrawOperation
     private void RenderCanvas(SKCanvas canvas)
     {
         canvas.Save();
+
+        canvas.Clear(CanvasBackgroundColor);
 
         if (ZoomExtent)
         {
@@ -117,21 +143,20 @@ public class MapRenderOperation : ICustomDrawOperation
         var scaleMatrix = centerOnPosition 
             ? SKMatrix.CreateScale(zoomLevel, zoomLevel, centerX, centerY) 
             : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
-
-        var newBounds = scaleMatrix.MapRect(Bounds.ToSKRect());
+        
+        var bitmapBounds = new SKRect(0, 0, _bitmap.Width, _bitmap.Height);
+        var newBounds = scaleMatrix.MapRect(bitmapBounds);
         if (newBounds.Width < Bounds.Width)
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
+            AdjustZoomLevelToBitmapBounds();
 
-            zoomLevel = (float)Bounds.Width / 1000;
+            // Copy the new zoom level because it's used below for
+            // the translation step
+            zoomLevel = ZoomLevel;
             
-            // Store the new zoom level so that the MapControl
-            // can obtain it and use it for mouse wheel zoom
-            // increments etc.
-            ZoomLevel = zoomLevel;
-
-            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
+            scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
         }
 
         // This works:
@@ -144,6 +169,19 @@ public class MapRenderOperation : ICustomDrawOperation
         if (centerOnPosition)
         {
             matrix = matrix.PostConcat(translateMatrix);
+        }
+        
+        // Ensure that when zooming out the bitmap never
+        // appears away from the origin (top/left 0,0)
+        // so that there won't be any gaps on screen.
+        var topLeft = matrix.MapPoint(0, 0);
+
+        if (topLeft.X > 0 || topLeft.Y > 0)
+        {
+            var clipTranslateX = topLeft.X > 0 ? topLeft.X : 0;
+            var clipTranslateY = topLeft.Y > 0 ? topLeft.Y : 0;
+            var minZoomLevelTranslate = SKMatrix.CreateTranslation(-clipTranslateX, -clipTranslateY);
+            matrix = matrix.PostConcat(minZoomLevelTranslate);
         }
 
         canvas.SetMatrix(matrix);
@@ -178,7 +216,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void InitializeBitmap()
     {
-        _bitmap = CreateBitmapFromControlBounds();
+        _bitmap = MapObjects.Any()
+            ? CreateBitmapFromMapObjectsBounds()
+            : CreateBitmapFromControlBounds();
+
+        AdjustZoomLevelToBitmapBounds();
 
         using var canvas = new SKCanvas(_bitmap);
         canvas.Clear(CanvasBackgroundColor);
@@ -187,5 +229,40 @@ public class MapRenderOperation : ICustomDrawOperation
     private SKBitmap CreateBitmapFromControlBounds()
     {
         return new SKBitmap((int)Bounds.Width, (int)Bounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+    }
+
+    private SKBitmap CreateBitmapFromMapObjectsBounds()
+    {
+        var left = 0f;
+        var top = 0f;
+        var right = 0f;
+        var bottom = 0f;
+
+        foreach (var mapObject in MapObjects)
+        {
+            if (mapObject.Bounds.Left < left)
+            {
+                left = mapObject.Bounds.Left;
+            }
+
+            if (mapObject.Bounds.Top < top)
+            {
+                top = mapObject.Bounds.Top;
+            }
+            
+            if (mapObject.Bounds.Right > right)
+            {
+                right = mapObject.Bounds.Right;
+            }
+            
+            if (mapObject.Bounds.Bottom > bottom)
+            {
+                bottom = mapObject.Bounds.Bottom;
+            }
+        }
+
+        var mapObjectsBounds = new SKRect(left, top, right, bottom);
+
+        return new SKBitmap((int)mapObjectsBounds.Width, (int)mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }

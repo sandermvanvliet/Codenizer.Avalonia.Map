@@ -9,7 +9,7 @@ namespace MapTest
         {
             InitializeComponent();
 
-            Map.MapObjects.Add(new Square("redSquare", 0, 0, 1000, 1000, "#FF0000"));
+            Map.MapObjects.Add(new Square("redSquare", 0, 0, 1100, 1100, "#FF0000"));
             Map.MapObjects.Add(new Square("greenSquare", 100, 100, 800, 800, "#00FF00"));
             Map.MapObjects.Add(new Square("blueSquare", 400, 400, 200, 200, "#0000FF"));
             Map.MapObjects.Add(new Square("yellowSquare", 700, 200, 100, 100, "#FFCC00"));

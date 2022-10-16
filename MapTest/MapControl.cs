@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using SkiaSharp;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace MapTest;
 
@@ -20,7 +20,7 @@ public class MapControl : UserControl
         IsHitTestVisible = true;
     }
 
-    public List<MapObject> MapObjects => _renderOperation.MapObjects;
+    public ObservableCollection<MapObject> MapObjects => _renderOperation.MapObjects;
 
     public override void Render(DrawingContext context)
     {
