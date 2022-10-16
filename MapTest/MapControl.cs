@@ -18,6 +18,7 @@ public class MapControl : UserControl
     {
         Background = new SolidColorBrush(Colors.Transparent);
         _renderOperation = new MapRenderOperation();
+        _renderOperation.MapObjects.CollectionChanged += (_, _) => InvalidateVisual();
         IsHitTestVisible = true;
     }
 
