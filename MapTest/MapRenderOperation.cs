@@ -46,6 +46,22 @@ public class MapRenderOperation : ICustomDrawOperation
             _bitmap.Height);
     }
 
+    private void AdjustZoomLevelToMapObjectBounds()
+    {
+        if (_mapObjectsBounds.IsEmpty)
+        {
+            ZoomLevel = 1;
+        }
+        else
+        {
+            ZoomLevel = CalculateScale(
+                (float)Bounds.Width,
+                (float)Bounds.Height,
+                _mapObjectsBounds.Width,
+                _mapObjectsBounds.Height);
+        }
+    }
+
     public Rect Bounds
     {
         get => _bounds;
@@ -114,7 +130,7 @@ public class MapRenderOperation : ICustomDrawOperation
         }
         else
         {
-            ZoomOnPoint(canvas, 1, 0, 0, false);
+            ZoomOnPoint(canvas, ZoomLevel, 0, 0, false);
         }
 
         foreach (MapObject mapObject in MapObjects)
@@ -165,7 +181,7 @@ public class MapRenderOperation : ICustomDrawOperation
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
-            AdjustZoomLevelToBitmapBounds();
+            AdjustZoomLevelToMapObjectBounds();
 
             scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
 
