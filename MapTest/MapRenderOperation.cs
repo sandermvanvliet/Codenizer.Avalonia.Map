@@ -68,7 +68,7 @@ public class MapRenderOperation : ICustomDrawOperation
     public float ZoomY { get; set; }
     public bool ZoomExtent { get; set; }
     public bool CenterOnPosition { get; set; }
-    public ObservableCollection<MapObject> MapObjects { get; }
+    public ObservableCollection<MapObject> MapObjects { get; set; }
 
     public void Render(IDrawingContextImpl context)
     {
@@ -98,15 +98,15 @@ public class MapRenderOperation : ICustomDrawOperation
 
         canvas.Clear(CanvasBackgroundColor);
 
-        if (ZoomExtent)
+        if (ZoomExtent && !string.IsNullOrEmpty(ZoomElementName))
         {
             // Hard code to the blue square
-            var yellowSquareBounds = MapObjects.Single(o => o.Name == "yellowSquare").Bounds;
-            var bounds = Pad(yellowSquareBounds, 20);
+            var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
+            var paddedElementBounds = Pad(elementBounds, 20);
 
-            var zoomLevel = _bitmap.Width / bounds.Width;
+            var zoomLevel = _bitmap.Width / paddedElementBounds.Width;
 
-            ZoomOnPoint(canvas, zoomLevel, bounds.MidX, bounds.MidY, true);
+            ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
         {
@@ -191,6 +191,7 @@ public class MapRenderOperation : ICustomDrawOperation
     }
 
     public SKMatrix LogicalMatrix { get; private set; }
+    public string? ZoomElementName { get; set; }
 
     private static SKRect Pad(SKRect bounds, int padding)
     {

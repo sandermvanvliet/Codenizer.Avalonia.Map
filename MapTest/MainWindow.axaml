@@ -23,7 +23,8 @@
 				<RowDefinition Height="28" />
 				<RowDefinition Height="28" />
 				<RowDefinition Height="28" />
-            </Grid.RowDefinitions>
+				<RowDefinition />
+			</Grid.RowDefinitions>
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition/>
 				<ColumnDefinition/>
@@ -34,12 +35,24 @@
 			<TextBlock Grid.Column="0" Grid.Row="2">Y</TextBlock>
 			<TextBlock Grid.Column="0" Grid.Row="3">Extent</TextBlock>
 
-            <TextBox Grid.Column="1" Grid.Row="0" Height="24" Name="ZoomLevel" Text="2" />
+			<TextBox Grid.Column="1" Grid.Row="0" Height="24" Name="ZoomLevel" Text="2" />
 			<TextBox Grid.Column="1" Grid.Row="1" Height="24" Name="ZoomX" Text="700" />
 			<TextBox Grid.Column="1" Grid.Row="2" Height="24" Name="ZoomY" Text="200" />
 
 			<CheckBox Grid.Column="1" Grid.Row="3" Name="ZoomExtent" />
 			<Button Grid.Column="1" Grid.Row="4" Content="Zoom" Click="Button_OnClick" />
+
+			<ListBox Grid.Column="0"
+                     Grid.ColumnSpan="2"
+                     Grid.Row="5"
+                     Items="{Binding Path=MapObjects,ElementName=Map}"
+                     SelectionChanged="SelectingItemsControl_OnSelectionChanged">
+				<ListBox.ItemTemplate>
+					<DataTemplate DataType="{x:Type mapTest:MapObject}">
+						<TextBlock Text="{Binding Path=Name}" />
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
 		</Grid>
 		<Border Grid.Column="1" Margin="4"
                 BorderBrush="Black"

@@ -13,6 +13,7 @@ public class MapControl : UserControl
     private SKPoint _mouseWheelZoomingCapturedPosition;
     private bool _isMouseWheelZooming;
 
+    public static readonly DirectProperty<MapControl, ObservableCollection<MapObject>> HighlightedSegmentProperty = AvaloniaProperty.RegisterDirect<MapControl, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public MapControl()
     {
         Background = new SolidColorBrush(Colors.Transparent);
@@ -20,7 +21,11 @@ public class MapControl : UserControl
         IsHitTestVisible = true;
     }
 
-    public ObservableCollection<MapObject> MapObjects => _renderOperation.MapObjects;
+    public ObservableCollection<MapObject> MapObjects
+    {
+        get => _renderOperation.MapObjects;
+        set => _renderOperation.MapObjects = value;
+    }
 
     public override void Render(DrawingContext context)
     {
@@ -129,13 +134,14 @@ public class MapControl : UserControl
         return mappedPoint;
     }
 
-    public void Zoom(float level, float zoomX, float zoomY, bool zoomExtent, bool centerOnPosition)
+    public void Zoom(float level, float zoomX, float zoomY, bool zoomExtent, bool centerOnPosition, string? elementName = null)
     {
         _renderOperation.ZoomLevel = level;
         _renderOperation.ZoomX = zoomX;
         _renderOperation.ZoomY = zoomY;
         _renderOperation.ZoomExtent = zoomExtent;
         _renderOperation.CenterOnPosition = centerOnPosition;
+        _renderOperation.ZoomElementName = elementName;
 
         InvalidateVisual();
     }

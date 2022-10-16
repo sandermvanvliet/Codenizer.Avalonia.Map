@@ -62,5 +62,14 @@ namespace MapTest
 
             Map.Zoom(zoomLevel, zoomX, zoomY, ZoomExtent.IsChecked.Value, true);
         }
+
+        private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0)
+            {
+                var x = e.AddedItems[0] as MapObject;
+                Map.Zoom(1, 0, 0, true, true, x.Name);
+            }
+        }
     }
 }
