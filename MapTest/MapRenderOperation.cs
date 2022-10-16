@@ -101,9 +101,9 @@ public class MapRenderOperation : ICustomDrawOperation
             var paddedElementBounds = Pad(elementBounds, 20);
 
             var zoomLevel = CalculateScale(
-                (float)Bounds.Width, 
-                (float)Bounds.Height, 
-                paddedElementBounds.Width, 
+                (float)Bounds.Width,
+                (float)Bounds.Height,
+                paddedElementBounds.Width,
                 paddedElementBounds.Height);
 
             ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true);
@@ -257,36 +257,27 @@ public class MapRenderOperation : ICustomDrawOperation
 
         foreach (var mapObject in MapObjects)
         {
-            if (mapObject.Bounds.Left < left)
-            {
-                left = mapObject.Bounds.Left;
-            }
-
-            if (mapObject.Bounds.Top < top)
-            {
-                top = mapObject.Bounds.Top;
-            }
-
-            if (mapObject.Bounds.Right > right)
-            {
-                right = mapObject.Bounds.Right;
-            }
-
-            if (mapObject.Bounds.Bottom > bottom)
-            {
-                bottom = mapObject.Bounds.Bottom;
-            }
+            left = Math.Min(mapObject.Bounds.Left, left);
+            top = Math.Min(mapObject.Bounds.Top, top);
+            right = Math.Max(mapObject.Bounds.Right, right);
+            bottom = Math.Max(mapObject.Bounds.Bottom, bottom);
         }
 
         _mapObjectsBounds = new SKRect(left, top, right, bottom);
 
         var width = _mapObjectsBounds.Width;
+        var height = _mapObjectsBounds.Height;
 
         if (_mapObjectsBounds.Width < Bounds.Width)
         {
             width = (float)Bounds.Width;
         }
 
-        return new SKBitmap((int)width, (int)_mapObjectsBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+        if (_mapObjectsBounds.Height < Bounds.Height)
+        {
+            height = (float)Bounds.Height;
+        }
+
+        return new SKBitmap((int)width, (int)height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 }
