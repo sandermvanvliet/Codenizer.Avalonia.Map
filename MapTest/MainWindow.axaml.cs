@@ -8,12 +8,6 @@ namespace MapTest
         public MainWindow()
         {
             InitializeComponent();
-
-            //Squares1000();
-            //Squares1100();
-            //SquaresWithNegativeFromOrigin();
-            //SquaresPortrait();
-            SquaresLandscape();
         }
 
         private void Squares1000()
@@ -88,7 +82,7 @@ namespace MapTest
             var zoomX = float.Parse(ZoomX.Text);
             var zoomY = float.Parse(ZoomY.Text);
 
-            Map.Zoom(zoomLevel, zoomX, zoomY, ZoomExtent.IsChecked.Value, true);
+            Map.Zoom(zoomLevel, zoomX, zoomY, false, true);
         }
 
         private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -97,6 +91,34 @@ namespace MapTest
             {
                 var x = e.AddedItems[0] as MapObject;
                 Map.Zoom(1, 0, 0, true, true, x.Name);
+            }
+        }
+
+        private void RadioButton_OnClick(object? sender, RoutedEventArgs e)
+        {
+            var value = (sender as RadioButton).Content as string;
+
+            value = value.Trim().ToLower();
+
+            Map.MapObjects.Clear();
+
+            switch (value)
+            {
+                case "squares 1000":
+                    Squares1000();
+                    break;
+                case "squares 1100":
+                    Squares1100();
+                    break;
+                case "squares negative":
+                    SquaresWithNegativeFromOrigin();
+                    break;
+                case "squares portrait":
+                    SquaresPortrait();
+                    break;
+                case "squares landscape":
+                    SquaresLandscape();
+                    break;
             }
         }
     }

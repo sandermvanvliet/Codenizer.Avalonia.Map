@@ -4,14 +4,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mapTest="clr-namespace:MapTest"
         mc:Ignorable="d"
-        Width="1210"
+        Width="1310"
         Height="1010"
         x:Class="MapTest.MainWindow"
         Title="MapTest">
 	<Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="200" />
-			<ColumnDefinition Width="1100" />
+			<ColumnDefinition />
 		</Grid.ColumnDefinitions>
 
 		<Grid Grid.Column="0"
@@ -22,7 +22,7 @@
 				<RowDefinition Height="28" />
 				<RowDefinition Height="28" />
 				<RowDefinition Height="28" />
-				<RowDefinition Height="28" />
+				<RowDefinition />
 				<RowDefinition />
 			</Grid.RowDefinitions>
 			<Grid.ColumnDefinitions>
@@ -33,14 +33,20 @@
 			<TextBlock Grid.Column="0" Grid.Row="0">Level</TextBlock>
 			<TextBlock Grid.Column="0" Grid.Row="1">X</TextBlock>
 			<TextBlock Grid.Column="0" Grid.Row="2">Y</TextBlock>
-			<TextBlock Grid.Column="0" Grid.Row="3">Extent</TextBlock>
 
 			<TextBox Grid.Column="1" Grid.Row="0" Height="24" Name="ZoomLevel" Text="2" />
 			<TextBox Grid.Column="1" Grid.Row="1" Height="24" Name="ZoomX" Text="700" />
 			<TextBox Grid.Column="1" Grid.Row="2" Height="24" Name="ZoomY" Text="200" />
+			<Button Grid.Column="1" Grid.Row="3" Content="Zoom" Click="Button_OnClick" />
 
-			<CheckBox Grid.Column="1" Grid.Row="3" Name="ZoomExtent" />
-			<Button Grid.Column="1" Grid.Row="4" Content="Zoom" Click="Button_OnClick" />
+			<StackPanel Grid.Column="0" Grid.ColumnSpan="2"
+                        Grid.Row="4" Orientation="Vertical">
+                <RadioButton Click="RadioButton_OnClick" Content="Squares 1000" IsChecked="True" />
+				<RadioButton Click="RadioButton_OnClick" Content="Squares 1100" />
+				<RadioButton Click="RadioButton_OnClick" Content="Squares negative" />
+				<RadioButton Click="RadioButton_OnClick" Content="Squares portrait" />
+				<RadioButton Click="RadioButton_OnClick" Content="Squares landscape" />
+            </StackPanel>
 
 			<ListBox Grid.Column="0"
                      Grid.ColumnSpan="2"
@@ -57,14 +63,10 @@
 		<Border Grid.Column="1" Margin="4"
                 BorderBrush="Black"
                 BorderThickness="1"
-                Width="1002"
-                Height="1002"
-                VerticalAlignment="Top"
-                HorizontalAlignment="Left">
-			<mapTest:MapControl Width="1000"
-								Height="1000"
-                                VerticalAlignment="Top"
-                                HorizontalAlignment="Left"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch">
+			<mapTest:MapControl VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
                                 Name="Map"/>
 		</Border>
 	</Grid>
