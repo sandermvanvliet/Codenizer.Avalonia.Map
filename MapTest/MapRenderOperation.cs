@@ -184,6 +184,23 @@ public class MapRenderOperation : ICustomDrawOperation
                     scaleMatrix = scaleMatrix.PostConcat(SKMatrix.CreateTranslation(scaleTranslateX, scaleTranslateY));
                 }
             }
+
+            // Update new bounds
+            newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
+        }
+
+        if (newBounds.Width < Bounds.Width)
+        {
+            // As we've already corrected for the aspect ratio
+            // of the map objects bitmap, it turns out that
+            // this one is indeed taller than wide.
+            // To make it look nice we should center the
+            // bitmap.
+            var offset = (Bounds.Width - newBounds.Width) / 2;
+
+            var translateMatrix = SKMatrix.CreateTranslation((float)offset, 0);
+
+            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
         }
 
         var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
