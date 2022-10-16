@@ -56,7 +56,7 @@ public class MapRenderOperation : ICustomDrawOperation
         set
         {
             _bounds = value;
-            
+
             _viewPortCenter = new SKPoint((float)_bounds.Width / 2, (float)_bounds.Height / 2);
 
             InitializeBitmap();
@@ -104,8 +104,8 @@ public class MapRenderOperation : ICustomDrawOperation
             var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
             var paddedElementBounds = Pad(elementBounds, 20);
 
-            var zoomLevel = _bitmap.Width / paddedElementBounds.Width;
-
+            var zoomLevel = (float)Bounds.Width / paddedElementBounds.Width;
+            
             ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
@@ -176,10 +176,10 @@ public class MapRenderOperation : ICustomDrawOperation
         if (centerOnPosition)
         {
             var mappedDesiredCenter = matrix.MapPoint(x, y);
-            
+
             var translateX = mappedDesiredCenter.X - _viewPortCenter.X;
             var translateY = mappedDesiredCenter.Y - _viewPortCenter.Y;
-            
+
             var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
 
             matrix = matrix.PostConcat(translateMatrix);
