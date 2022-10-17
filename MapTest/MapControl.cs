@@ -125,8 +125,22 @@ public class MapControl : UserControl
 
     public void Zoom(float level, bool centerOnPosition, SKPoint mapPosition, string? elementName = null)
     {
-        _renderOperation.Zoom(level, mapPosition, centerOnPosition, elementName);
-        
+        if (!string.IsNullOrEmpty(elementName))
+        {
+            _renderOperation.ZoomExtent(elementName);
+        }
+        else
+        {
+            _renderOperation.Zoom(level, mapPosition, centerOnPosition, elementName);
+        }
+
+        InvalidateVisual();
+    }
+
+    public void ZoomExtent(string elementName)
+    {
+        _renderOperation.ZoomExtent(elementName);
+
         InvalidateVisual();
     }
 

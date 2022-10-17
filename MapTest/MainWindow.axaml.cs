@@ -105,7 +105,7 @@ namespace MapTest
             if (e.AddedItems.Count > 0)
             {
                 var x = e.AddedItems[0] as MapObject;
-                Map.Zoom(0, true, SKPoint.Empty, x.Name);
+                Map.ZoomExtent(x.Name);
             }
         }
 

@@ -17,6 +17,7 @@ public class MapRenderOperation : ICustomDrawOperation
     private readonly SKPaint _crossHairPaint;
     private SKRect _mapObjectsBounds;
     private SKPoint _viewPortCenter;
+    private ZoomMode _zoomMode = ZoomMode.All;
 
     public MapRenderOperation()
     {
@@ -125,32 +126,17 @@ public class MapRenderOperation : ICustomDrawOperation
 
         if (MapObjects.Any())
         {
-            if (!string.IsNullOrEmpty(ZoomElementName))
+            switch (_zoomMode)
             {
-                var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
-
-                var paddedElementBounds = elementBounds;
-
-                if (elementBounds != _mapObjectsBounds)
-                {
-                    paddedElementBounds = Pad(elementBounds, 20);
-                }
-
-                var zoomLevel = CalculateScale(
-                    (float)Bounds.Width,
-                    (float)Bounds.Height,
-                    paddedElementBounds.Width,
-                    paddedElementBounds.Height);
-
-                ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true, true);
-            }
-            else if (Math.Abs(ZoomLevel - 1) > 0.01)
-            {
-                ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
-            }
-            else
-            {
-                ZoomOnPoint(canvas, ZoomLevel, 0, 0, false, false);
+                case ZoomMode.Extent when !string.IsNullOrEmpty(ZoomElementName):
+                    ZoomExtent(canvas, ZoomElementName);
+                    break;
+                case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
+                    ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
+                    break;
+                default: /* including ZoomMode.All */
+                    ZoomAll(canvas);
+                    break;
             }
 
             foreach (MapObject mapObject in MapObjects)
@@ -164,6 +150,83 @@ public class MapRenderOperation : ICustomDrawOperation
         RenderCrossHair(canvas);
 
         canvas.Flush();
+    }
+
+    private void ZoomExtent(SKCanvas canvas, string zoomElementName)
+    {
+        var elementBounds = MapObjects.Single(o => o.Name == zoomElementName).Bounds;
+
+        var paddedElementBounds = elementBounds;
+
+        if (elementBounds != _mapObjectsBounds)
+        {
+            paddedElementBounds = Pad(elementBounds, 20);
+        }
+
+        var zoomLevel = CalculateScale(
+            (float)Bounds.Width,
+            (float)Bounds.Height,
+            paddedElementBounds.Width,
+            paddedElementBounds.Height);
+
+        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
+
+        // Apply the scaling matrix
+        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
+
+        var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
+
+        var translateX = mappedDesiredCenter.X - _viewPortCenter.X;
+        var translateY = mappedDesiredCenter.Y - _viewPortCenter.Y;
+
+        var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
+
+        matrix = matrix.PostConcat(translateMatrix);
+
+        canvas.SetMatrix(matrix);
+
+        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+    }
+
+    private void ZoomAll(SKCanvas canvas)
+    {
+        var zoomLevel = CalculateScale(
+            (float)Bounds.Width,
+            (float)Bounds.Height,
+            _mapObjectsBounds.Width,
+            _mapObjectsBounds.Height);
+
+        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
+        var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
+
+        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
+
+        var translateX = 0f;
+        var translateY = 0f;
+
+        if (newBounds.Width < Bounds.Width)
+        {
+            // Center horizontally
+            translateX = ((float)Bounds.Width - newBounds.Width) / 2;
+        }
+
+        if (newBounds.Height < Bounds.Height)
+        {
+            // Center vertically
+            translateY = ((float)Bounds.Height - newBounds.Height) / 2;
+        }
+
+        // Handle situations where top/left isn't at the origin
+        translateX += -Math.Min(newBounds.Left, 0);
+        translateY += -Math.Min(newBounds.Top, 0);
+
+        var translate = SKMatrix.CreateTranslation(translateX, translateY);
+
+        matrix = matrix.PostConcat(translate);
+
+        canvas.SetMatrix(matrix);
+        
+        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
     }
 
     private static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
@@ -305,7 +368,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
             matrix = matrix.PostConcat(translateMatrix);
         }
-        
+
         canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
@@ -422,14 +485,20 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public void ZoomAll()
     {
-        ZoomLevel = CalculateScale(
-            (float)Bounds.Width,
-            (float)Bounds.Height,
-            _mapObjectsBounds.Width,
-            _mapObjectsBounds.Height);
+        _zoomMode = ZoomMode.All;
+        ZoomLevel = 1;
         ZoomCenter = SKPoint.Empty;
         CenterOnPosition = false;
         ZoomElementName = null;
+    }
+
+    public void ZoomExtent(string elementName)
+    {
+        _zoomMode = ZoomMode.Extent;
+        ZoomLevel = 1;
+        ZoomCenter = SKPoint.Empty;
+        CenterOnPosition = false;
+        ZoomElementName = elementName;
     }
 
     public SKPoint MapViewportPositionToMapPosition(Avalonia.Point viewportPosition)
@@ -446,4 +515,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
         return new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y);
     }
+}
+
+public enum ZoomMode
+{
+    All,
+    Extent,
+    Point
 }
