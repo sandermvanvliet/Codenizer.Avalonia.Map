@@ -22,7 +22,7 @@
 				<RowDefinition Height="28" />
 				<RowDefinition Height="28" />
 				<RowDefinition Height="38"/>
-                <RowDefinition Height="200"/>
+                <RowDefinition Height="230"/>
                 <RowDefinition Height="50" />
 				<RowDefinition />
 			</Grid.RowDefinitions>
@@ -54,6 +54,7 @@
 				<RadioButton Click="RadioButton_OnClick" Content="Squares negative" />
 				<RadioButton Click="RadioButton_OnClick" Content="Squares portrait" />
 				<RadioButton Click="RadioButton_OnClick" Content="Squares landscape" />
+				<RadioButton Click="RadioButton_OnClick" Content="Squares image" />
             </StackPanel>
 
 			<TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"

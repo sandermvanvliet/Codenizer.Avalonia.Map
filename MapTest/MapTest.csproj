@@ -9,6 +9,10 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove=".gitignore" />
+    <None Remove="map-watopia.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="map-watopia.png" />
   </ItemGroup>
   <ItemGroup>
     <!--This helps with theme dll-s trimming.
