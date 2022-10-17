@@ -72,9 +72,9 @@ public class MapControl : UserControl
     {
         var positionOnViewport = e.GetPosition(this);
         
-        var positionOnCanvas = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
+        var mapPosition = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
         
-        Zoom(2, true, positionOnCanvas);
+        Zoom(2, true, mapPosition);
         
         e.Handled = true;
     }
@@ -123,9 +123,9 @@ public class MapControl : UserControl
         base.OnPointerMoved(e);
     }
 
-    public void Zoom(float level, bool centerOnPosition, SKPoint positionOnCanvas, string? elementName = null)
+    public void Zoom(float level, bool centerOnPosition, SKPoint mapPosition, string? elementName = null)
     {
-        _renderOperation.Zoom(level, positionOnCanvas, centerOnPosition, elementName);
+        _renderOperation.Zoom(level, mapPosition, centerOnPosition, elementName);
         
         InvalidateVisual();
     }
