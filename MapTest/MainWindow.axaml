@@ -41,7 +41,7 @@
 
 			<StackPanel Grid.Column="0" Grid.ColumnSpan="2"
                         Grid.Row="4" Orientation="Vertical">
-                <RadioButton Click="RadioButton_OnClick" Content="Squares 1000" IsChecked="True" />
+                <RadioButton Click="RadioButton_OnClick" Content="Squares 1000" />
 				<RadioButton Click="RadioButton_OnClick" Content="Squares 1100" />
 				<RadioButton Click="RadioButton_OnClick" Content="Squares negative" />
 				<RadioButton Click="RadioButton_OnClick" Content="Squares portrait" />
