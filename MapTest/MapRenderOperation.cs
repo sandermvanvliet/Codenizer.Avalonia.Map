@@ -28,6 +28,16 @@ public class MapRenderOperation : ICustomDrawOperation
         MapObjects = new ObservableCollection<MapObject>();
         MapObjects.CollectionChanged += (_, _) =>
         {
+            var originalBounds = _mapObjectsBounds;
+            _mapObjectsBounds = CalculateTotalBoundsForMapObjects();
+
+            if (Math.Abs(_mapObjectsBounds.Width - originalBounds.Width) > 0.1 ||
+                Math.Abs(_mapObjectsBounds.Height - originalBounds.Height) > 0.1)
+            {
+                // Reset the zoom level
+                ZoomLevel = 1;
+            }
+
             _bitmap = CreateBitmapFromMapObjectsBounds();
             
             if (!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
@@ -251,7 +261,7 @@ public class MapRenderOperation : ICustomDrawOperation
     }
 
     public SKMatrix LogicalMatrix { get; private set; }
-    public string? ZoomElementName { get; set; }
+    public string? ZoomElementName { get; private set; }
 
     private static SKRect Pad(SKRect bounds, int padding)
     {
@@ -295,8 +305,6 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private SKBitmap CreateBitmapFromMapObjectsBounds()
     {
-        _mapObjectsBounds = CalculateTotalBoundsForMapObjects();
-
         var width = _mapObjectsBounds.Width;
         var height = _mapObjectsBounds.Height;
 
