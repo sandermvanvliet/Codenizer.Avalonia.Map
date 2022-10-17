@@ -74,8 +74,8 @@ public class MapControl : UserControl
         
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
         
-        Zoom(2, true, mapPosition);
-        
+        // TODO: Add hit test for a map object here
+
         e.Handled = true;
     }
 
