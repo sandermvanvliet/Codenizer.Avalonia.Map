@@ -97,7 +97,7 @@ namespace MapTest
             var zoomX = float.Parse(ZoomX.Text);
             var zoomY = float.Parse(ZoomY.Text);
 
-            Map.Zoom(zoomY, true, new SKPoint(zoomX, zoomY));
+            Map.Zoom(zoomLevel, true, new SKPoint(zoomX, zoomY));
         }
 
         private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
