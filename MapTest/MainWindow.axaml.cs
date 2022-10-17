@@ -44,7 +44,8 @@ namespace MapTest
             Map.MapObjects.Add(new Square("blueSquare", 400, 400, 200, 200, "#0000FF"));
             Map.MapObjects.Add(new Square("yellowSquare", 700, 200, 100, 100, "#FFCC00"));
             Map.MapObjects.Add(new Square("purpleSquare", -100, -100, 100, 100, "#690fad"));
-
+            
+            Map.MapObjects.Add(new Point("point0", -50, -50, 2, "#FFFFFF"));
             Map.MapObjects.Add(new Point("point1", 100, 100, 2, "#000000"));
             Map.MapObjects.Add(new Point("point2", 400, 400, 2, "#000000"));
             Map.MapObjects.Add(new Point("point3", 700, 200, 2, "#000000"));

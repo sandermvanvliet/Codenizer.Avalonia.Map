@@ -8,7 +8,7 @@ public class Point : MapObject
     private readonly float _y;
     private readonly float _radius;
     private static readonly SKFont Font = new(SKTypeface.Default);
-    private static readonly SKPaint TextPaint = new() { Color = SKColor.Parse("#000000"), IsAntialias = true };
+    private readonly SKPaint _textPaint;
 
     public Point(string name, float x, float y, float radius, string color)
     {
@@ -16,7 +16,14 @@ public class Point : MapObject
         _y = y;
         _radius = radius;
         Name = name;
-        Paint = new SKPaint { Color = SKColor.Parse(color), Style = SKPaintStyle.Fill };
+
+        var parsedColor = SKColor.Parse(color);
+        Paint = new SKPaint { Color = parsedColor, Style = SKPaintStyle.Fill };
+        _textPaint = new SKPaint { Color = parsedColor, IsAntialias = true };
+        
+        // This excludes the text but that's exactly what we want
+        // as the text is purely informational anyway and otherwise
+        // we can't center on a point exactly
         Bounds = new SKRect(x - radius, y - radius, x + radius, y + radius);
     }
 
@@ -26,6 +33,6 @@ public class Point : MapObject
     public override void Render(SKCanvas canvas)
     {
         canvas.DrawCircle(_x, _y, _radius, Paint);
-        canvas.DrawText($"{_x}x{_y}", _x, _y, Font, TextPaint);
+        canvas.DrawText($"{_x}x{_y}", _x, _y, Font, _textPaint);
     }
 }
