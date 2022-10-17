@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using SkiaSharp;
 
 namespace MapTest
 {
@@ -82,7 +83,7 @@ namespace MapTest
             var zoomX = float.Parse(ZoomX.Text);
             var zoomY = float.Parse(ZoomY.Text);
 
-            Map.Zoom(zoomLevel, zoomX, zoomY, true);
+            Map.Zoom(zoomY, true, new SKPoint(zoomX, zoomY));
         }
 
         private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -90,7 +91,7 @@ namespace MapTest
             if (e.AddedItems.Count > 0)
             {
                 var x = e.AddedItems[0] as MapObject;
-                Map.Zoom(1, 0, 0, true, x.Name);
+                Map.Zoom(0, true, SKPoint.Empty, x.Name);
             }
         }
 

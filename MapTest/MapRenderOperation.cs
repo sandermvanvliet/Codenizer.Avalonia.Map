@@ -76,8 +76,7 @@ public class MapRenderOperation : ICustomDrawOperation
     }
 
     public float ZoomLevel { get; private set; } = 1;
-    public float ZoomX { get; private set; }
-    public float ZoomY { get; private set; }
+    public SKPoint ZoomCenter { get; private set; }
     public bool CenterOnPosition { get; private set; }
     public ObservableCollection<MapObject> MapObjects { get; set; }
 
@@ -124,7 +123,7 @@ public class MapRenderOperation : ICustomDrawOperation
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
         {
-            ZoomOnPoint(canvas, ZoomLevel, ZoomX, ZoomY, CenterOnPosition);
+            ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition);
         }
         else
         {
@@ -332,11 +331,10 @@ public class MapRenderOperation : ICustomDrawOperation
         return new SKRect(left, top, right, bottom);
     }
 
-    public void Zoom(float level, float zoomX, float zoomY, bool centerOnPosition, string? elementName)
+    public void Zoom(float level, SKPoint positionOnCanvas, bool centerOnPosition, string? elementName)
     {
         ZoomLevel = level;
-        ZoomX = zoomX;
-        ZoomY = zoomY;
+        ZoomCenter = positionOnCanvas;
         CenterOnPosition = centerOnPosition;
         ZoomElementName = elementName;
     }
