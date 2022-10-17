@@ -190,20 +190,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition, bool zoomExtent)
     {
-        // It looks like we're centering on the wrong position here but
-        // have no fear, the actual centering happens with a translation
-        // below.
-        var scaleMatrix = centerOnPosition
-            ? SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0)
-            : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
+        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
         var newBounds = Round(scaleMatrix.MapRect(_mapObjectsBounds));
 
-        if (IsEntirelyWithin(newBounds, Bounds) ||
-            (
-                (newBounds.Width > Bounds.Width || newBounds.Height > Bounds.Height) &&
-                !zoomExtent
-                ))
+        if (IsEntirelyWithin(newBounds, Bounds))
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
@@ -226,6 +217,21 @@ public class MapRenderOperation : ICustomDrawOperation
                     scaleMatrix = scaleMatrix.PostConcat(SKMatrix.CreateTranslation(scaleTranslateX, scaleTranslateY));
                 }
             }
+
+            // Update new bounds
+            newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
+        }
+
+        if (!zoomExtent &&
+            IsEntirelyWithin(newBounds, Bounds) &&
+            IsOutsideViewport(newBounds, Bounds))
+        {
+            var translateX = -Math.Min(newBounds.Left, 0);
+            var translateY = -Math.Min(newBounds.Top, 0);
+
+            var translateMatrix = SKMatrix.CreateTranslation(translateX, translateY);
+
+            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
 
             // Update new bounds
             newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
@@ -256,14 +262,25 @@ public class MapRenderOperation : ICustomDrawOperation
             // bitmap.
             var offset = (Bounds.Height - newBounds.Height) / 2;
 
-            var translateMatrix = SKMatrix.CreateTranslation(0, (float)offset);
+            var shift = -x;
+
+            if (newBounds.Right + shift < Bounds.Right)
+            {
+                shift = (float)Bounds.Right - newBounds.Right;
+            }
+
+            var translateMatrix = SKMatrix.CreateTranslation(
+                centerOnPosition
+                    ? 0
+                    : shift,
+                (float)offset);
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
 
             newBounds = translateMatrix.MapRect(newBounds);
         }
 
-        if ((newBounds.Left < 0 || newBounds.Top < 0) && 
+        if ((newBounds.Left < 0 || newBounds.Top < 0) &&
             newBounds.Width <= Bounds.Width &&
             newBounds.Height <= Bounds.Height)
         {
@@ -288,10 +305,18 @@ public class MapRenderOperation : ICustomDrawOperation
 
             matrix = matrix.PostConcat(translateMatrix);
         }
-
+        
         canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+    }
+
+    private static bool IsOutsideViewport(SKRect inner, Rect outer)
+    {
+        return inner.Left < outer.Left ||
+               inner.Top < outer.Top ||
+               inner.Right > outer.Right ||
+               inner.Bottom > outer.Bottom;
     }
 
     private static bool IsEntirelyWithin(SKRect inner, Rect outer)
@@ -393,6 +418,18 @@ public class MapRenderOperation : ICustomDrawOperation
         ZoomCenter = mapPosition;
         CenterOnPosition = centerOnPosition;
         ZoomElementName = elementName;
+    }
+
+    public void ZoomAll()
+    {
+        ZoomLevel = CalculateScale(
+            (float)Bounds.Width,
+            (float)Bounds.Height,
+            _mapObjectsBounds.Width,
+            _mapObjectsBounds.Height);
+        ZoomCenter = SKPoint.Empty;
+        CenterOnPosition = false;
+        ZoomElementName = null;
     }
 
     public SKPoint MapViewportPositionToMapPosition(Avalonia.Point viewportPosition)

@@ -142,7 +142,7 @@ namespace MapTest
 
         private void ZoomAllButton_OnClick(object? sender, RoutedEventArgs e)
         {
-            Map.Zoom(1, false, SKPoint.Empty);
+            Map.ZoomAll();
         }
     }
 }

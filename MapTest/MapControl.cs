@@ -129,4 +129,11 @@ public class MapControl : UserControl
         
         InvalidateVisual();
     }
+
+    public void ZoomAll()
+    {
+        _renderOperation.ZoomAll();
+
+        InvalidateVisual();
+    }
 }
