@@ -39,7 +39,7 @@ public class MapRenderOperation : ICustomDrawOperation
             }
 
             _bitmap = CreateBitmapFromMapObjectsBounds();
-            
+
             if (!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
             {
                 AdjustZoomLevelToBitmapBounds();
@@ -119,41 +119,44 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void RenderCanvas(SKCanvas canvas)
     {
-        canvas.Save();
-
         canvas.Clear(CanvasBackgroundColor);
 
-        if (!string.IsNullOrEmpty(ZoomElementName))
-        {
-            var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
-            
-            var paddedElementBounds = elementBounds;
+        canvas.Save();
 
-            if (elementBounds != _mapObjectsBounds)
+        if (MapObjects.Any())
+        {
+            if (!string.IsNullOrEmpty(ZoomElementName))
             {
-                paddedElementBounds = Pad(elementBounds, 20);
+                var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
+
+                var paddedElementBounds = elementBounds;
+
+                if (elementBounds != _mapObjectsBounds)
+                {
+                    paddedElementBounds = Pad(elementBounds, 20);
+                }
+
+                var zoomLevel = CalculateScale(
+                    (float)Bounds.Width,
+                    (float)Bounds.Height,
+                    paddedElementBounds.Width,
+                    paddedElementBounds.Height);
+
+                ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true, true);
+            }
+            else if (Math.Abs(ZoomLevel - 1) > 0.01)
+            {
+                ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
+            }
+            else
+            {
+                ZoomOnPoint(canvas, ZoomLevel, 0, 0, false, false);
             }
 
-            var zoomLevel = CalculateScale(
-                (float)Bounds.Width,
-                (float)Bounds.Height,
-                paddedElementBounds.Width,
-                paddedElementBounds.Height);
-
-            ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true, true);
-        }
-        else if (Math.Abs(ZoomLevel - 1) > 0.01)
-        {
-            ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
-        }
-        else
-        {
-            ZoomOnPoint(canvas, ZoomLevel, 0, 0, false, false);
-        }
-
-        foreach (MapObject mapObject in MapObjects)
-        {
-            mapObject.Render(canvas);
+            foreach (MapObject mapObject in MapObjects)
+            {
+                mapObject.Render(canvas);
+            }
         }
 
         canvas.Restore();
@@ -197,7 +200,10 @@ public class MapRenderOperation : ICustomDrawOperation
         var newBounds = Round(scaleMatrix.MapRect(_mapObjectsBounds));
 
         if (IsEntirelyWithin(newBounds, Bounds) ||
-            ((newBounds.Width > Bounds.Width || newBounds.Height > Bounds.Height)&& !zoomExtent))
+            (
+                (newBounds.Width > Bounds.Width || newBounds.Height > Bounds.Height) &&
+                !zoomExtent
+                ))
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
@@ -237,6 +243,8 @@ public class MapRenderOperation : ICustomDrawOperation
             var translateMatrix = SKMatrix.CreateTranslation((float)offset, 0);
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
+
+            newBounds = translateMatrix.MapRect(newBounds);
         }
 
         if (newBounds.Height < Bounds.Height)
@@ -249,6 +257,19 @@ public class MapRenderOperation : ICustomDrawOperation
             var offset = (Bounds.Height - newBounds.Height) / 2;
 
             var translateMatrix = SKMatrix.CreateTranslation(0, (float)offset);
+
+            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
+
+            newBounds = translateMatrix.MapRect(newBounds);
+        }
+
+        if ((newBounds.Left < 0 || newBounds.Top < 0) && 
+            newBounds.Width <= Bounds.Width &&
+            newBounds.Height <= Bounds.Height)
+        {
+            var translateMatrix = SKMatrix.CreateTranslation(
+                -Math.Min(0, newBounds.Left),
+                -Math.Min(0, newBounds.Top));
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
         }
