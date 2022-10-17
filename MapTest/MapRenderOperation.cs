@@ -75,10 +75,10 @@ public class MapRenderOperation : ICustomDrawOperation
         }
     }
 
-    public float ZoomLevel { get; set; } = 1;
-    public float ZoomX { get; set; }
-    public float ZoomY { get; set; }
-    public bool CenterOnPosition { get; set; }
+    public float ZoomLevel { get; private set; } = 1;
+    public float ZoomX { get; private set; }
+    public float ZoomY { get; private set; }
+    public bool CenterOnPosition { get; private set; }
     public ObservableCollection<MapObject> MapObjects { get; set; }
 
     public void Render(IDrawingContextImpl context)
@@ -231,6 +231,7 @@ public class MapRenderOperation : ICustomDrawOperation
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
         }
 
+        // Apply the scaling matrix
         var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
 
         if (centerOnPosition)
@@ -295,20 +296,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private SKBitmap CreateBitmapFromMapObjectsBounds()
     {
-        var left = 0f;
-        var top = 0f;
-        var right = 0f;
-        var bottom = 0f;
-
-        foreach (var mapObject in MapObjects)
-        {
-            left = Math.Min(mapObject.Bounds.Left, left);
-            top = Math.Min(mapObject.Bounds.Top, top);
-            right = Math.Max(mapObject.Bounds.Right, right);
-            bottom = Math.Max(mapObject.Bounds.Bottom, bottom);
-        }
-
-        _mapObjectsBounds = new SKRect(left, top, right, bottom);
+        _mapObjectsBounds = CalculateTotalBoundsForMapObjects();
 
         var width = _mapObjectsBounds.Width;
         var height = _mapObjectsBounds.Height;
@@ -324,5 +312,47 @@ public class MapRenderOperation : ICustomDrawOperation
         }
 
         return new SKBitmap((int)width, (int)height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+    }
+
+    private SKRect CalculateTotalBoundsForMapObjects()
+    {
+        var left = 0f;
+        var top = 0f;
+        var right = 0f;
+        var bottom = 0f;
+
+        foreach (var mapObject in MapObjects)
+        {
+            left = Math.Min(mapObject.Bounds.Left, left);
+            top = Math.Min(mapObject.Bounds.Top, top);
+            right = Math.Max(mapObject.Bounds.Right, right);
+            bottom = Math.Max(mapObject.Bounds.Bottom, bottom);
+        }
+
+        return new SKRect(left, top, right, bottom);
+    }
+
+    public void Zoom(float level, float zoomX, float zoomY, bool centerOnPosition, string? elementName)
+    {
+        ZoomLevel = level;
+        ZoomX = zoomX;
+        ZoomY = zoomY;
+        CenterOnPosition = centerOnPosition;
+        ZoomElementName = elementName;
+    }
+
+    public SKPoint MapViewportPositionToMapPosition(Avalonia.Point viewportPosition)
+    {
+        if (LogicalMatrix != SKMatrix.Empty)
+        {
+            // Because we want to get the _original_ coordinate on the
+            // map before scaling or translation has happened we need
+            // the inverse matrix.
+            var inverseMatrix = LogicalMatrix.Invert();
+
+            return inverseMatrix.MapPoint(new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y));
+        }
+
+        return new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y);
     }
 }

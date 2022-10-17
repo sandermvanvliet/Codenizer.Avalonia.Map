@@ -13,15 +13,23 @@ public class MapControl : UserControl
     private SKPoint _mouseWheelZoomingCapturedPosition;
     private bool _isMouseWheelZooming;
 
-    public static readonly DirectProperty<MapControl, ObservableCollection<MapObject>> HighlightedSegmentProperty = AvaloniaProperty.RegisterDirect<MapControl, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
+    public static readonly DirectProperty<MapControl, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<MapControl, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
+
     public MapControl()
     {
         Background = new SolidColorBrush(Colors.Transparent);
+        IsHitTestVisible = true;
+
         _renderOperation = new MapRenderOperation();
         _renderOperation.MapObjects.CollectionChanged += (_, _) => InvalidateVisual();
-        IsHitTestVisible = true;
     }
 
+    // This is a pass-through because otherwise we need to hook into
+    // the collection changed events and propagate all changes to 
+    // the render operation. I think that's a bit suboptimal so right
+    // now it's like this. If it turns out there is some advantage
+    // to hooking the event because can call InvalidateVisual() in
+    // a better way then this will change.
     public ObservableCollection<MapObject> MapObjects
     {
         get => _renderOperation.MapObjects;
@@ -62,13 +70,9 @@ public class MapControl : UserControl
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
-        var position = e.GetPosition(this);
-
-        _renderOperation.ZoomLevel = 2;
+        var positionOnViewport = e.GetPosition(this);
         
-        var mappedPoint = new SKPoint((float)position.X, (float)position.Y);
-
-        mappedPoint = ConvertPointOnControlToMapPosition(mappedPoint);
+        var mappedPoint = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
 
         Zoom(2, mappedPoint.X, mappedPoint.Y, true);
         
@@ -79,14 +83,13 @@ public class MapControl : UserControl
     {
         const double step = 0.05;
 
-        var position = e.GetPosition(this);
+        var positionOnViewport = e.GetPosition(this);
 
         if (!_isMouseWheelZooming)
         {
             _isMouseWheelZooming = true;
             
-            _mouseWheelZoomingCapturedPosition = new SKPoint((float)position.X, (float)position.Y);
-            _mouseWheelZoomingCapturedPosition = ConvertPointOnControlToMapPosition(_mouseWheelZoomingCapturedPosition);
+            _mouseWheelZoomingCapturedPosition = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
         }
 
         var increment = e.Delta.Y == 0
@@ -120,29 +123,10 @@ public class MapControl : UserControl
         base.OnPointerMoved(e);
     }
 
-    private SKPoint ConvertPointOnControlToMapPosition(SKPoint mappedPoint)
-    {
-        if (_renderOperation.LogicalMatrix != SKMatrix.Empty)
-        {
-            // Because we want to get the _original_ coordinate on the
-            // map before scaling or translation has happened we need
-            // the inverse matrix.
-            var inverseMatrix = _renderOperation.LogicalMatrix.Invert();
-
-            mappedPoint = inverseMatrix.MapPoint(mappedPoint);
-        }
-
-        return mappedPoint;
-    }
-
     public void Zoom(float level, float zoomX, float zoomY, bool centerOnPosition, string? elementName = null)
     {
-        _renderOperation.ZoomLevel = level;
-        _renderOperation.ZoomX = zoomX;
-        _renderOperation.ZoomY = zoomY;
-        _renderOperation.CenterOnPosition = centerOnPosition;
-        _renderOperation.ZoomElementName = elementName;
-
+        _renderOperation.Zoom(level, zoomX, zoomY, centerOnPosition, elementName);
+        
         InvalidateVisual();
     }
 }
