@@ -78,7 +78,6 @@ public class MapRenderOperation : ICustomDrawOperation
     public float ZoomLevel { get; set; } = 1;
     public float ZoomX { get; set; }
     public float ZoomY { get; set; }
-    public bool ZoomExtent { get; set; }
     public bool CenterOnPosition { get; set; }
     public ObservableCollection<MapObject> MapObjects { get; set; }
 
@@ -110,9 +109,8 @@ public class MapRenderOperation : ICustomDrawOperation
 
         canvas.Clear(CanvasBackgroundColor);
 
-        if (ZoomExtent && !string.IsNullOrEmpty(ZoomElementName))
+        if (!string.IsNullOrEmpty(ZoomElementName))
         {
-            // Hard code to the blue square
             var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
             var paddedElementBounds = Pad(elementBounds, 20);
 

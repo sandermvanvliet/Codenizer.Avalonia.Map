@@ -70,7 +70,7 @@ public class MapControl : UserControl
 
         mappedPoint = ConvertPointOnControlToMapPosition(mappedPoint);
 
-        Zoom(2, mappedPoint.X, mappedPoint.Y, false, true);
+        Zoom(2, mappedPoint.X, mappedPoint.Y, true);
         
         e.Handled = true;
     }
@@ -102,7 +102,7 @@ public class MapControl : UserControl
             newZoomLevel = 0.1f;
         }
         
-        Zoom(newZoomLevel, _mouseWheelZoomingCapturedPosition.X, _mouseWheelZoomingCapturedPosition.Y, false, false);
+        Zoom(newZoomLevel, _mouseWheelZoomingCapturedPosition.X, _mouseWheelZoomingCapturedPosition.Y, false);
         
         e.Handled = true;
     }
@@ -135,12 +135,11 @@ public class MapControl : UserControl
         return mappedPoint;
     }
 
-    public void Zoom(float level, float zoomX, float zoomY, bool zoomExtent, bool centerOnPosition, string? elementName = null)
+    public void Zoom(float level, float zoomX, float zoomY, bool centerOnPosition, string? elementName = null)
     {
         _renderOperation.ZoomLevel = level;
         _renderOperation.ZoomX = zoomX;
         _renderOperation.ZoomY = zoomY;
-        _renderOperation.ZoomExtent = zoomExtent;
         _renderOperation.CenterOnPosition = centerOnPosition;
         _renderOperation.ZoomElementName = elementName;
 
