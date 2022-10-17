@@ -44,6 +44,11 @@ public class MapRenderOperation : ICustomDrawOperation
             {
                 AdjustZoomLevelToBitmapBounds();
             }
+
+            if (!string.IsNullOrEmpty(ZoomElementName) && MapObjects.All(m => m.Name != ZoomElementName))
+            {
+                ZoomElementName = null;
+            }
         };
     }
 
