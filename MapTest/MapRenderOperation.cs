@@ -126,7 +126,13 @@ public class MapRenderOperation : ICustomDrawOperation
         if (!string.IsNullOrEmpty(ZoomElementName))
         {
             var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
-            var paddedElementBounds = Pad(elementBounds, 20);
+            
+            var paddedElementBounds = elementBounds;
+
+            if (elementBounds != _mapObjectsBounds)
+            {
+                paddedElementBounds = Pad(elementBounds, 20);
+            }
 
             var zoomLevel = CalculateScale(
                 (float)Bounds.Width,
@@ -134,15 +140,15 @@ public class MapRenderOperation : ICustomDrawOperation
                 paddedElementBounds.Width,
                 paddedElementBounds.Height);
 
-            ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true);
+            ZoomOnPoint(canvas, zoomLevel, paddedElementBounds.MidX, paddedElementBounds.MidY, true, true);
         }
         else if (Math.Abs(ZoomLevel - 1) > 0.01)
         {
-            ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition);
+            ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
         }
         else
         {
-            ZoomOnPoint(canvas, ZoomLevel, 0, 0, false);
+            ZoomOnPoint(canvas, ZoomLevel, 0, 0, false, false);
         }
 
         foreach (MapObject mapObject in MapObjects)
@@ -179,7 +185,7 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.DrawCircle(_viewPortCenter.X, _viewPortCenter.Y, 2, _crossHairPaint);
     }
 
-    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
+    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition, bool zoomExtent)
     {
         // It looks like we're centering on the wrong position here but
         // have no fear, the actual centering happens with a translation
@@ -188,8 +194,10 @@ public class MapRenderOperation : ICustomDrawOperation
             ? SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0)
             : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
 
-        var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
-        if (newBounds.Width < Bounds.Width && newBounds.Height < Bounds.Height)
+        var newBounds = Round(scaleMatrix.MapRect(_mapObjectsBounds));
+
+        if (IsEntirelyWithin(newBounds, Bounds) ||
+            ((newBounds.Width > Bounds.Width || newBounds.Height > Bounds.Height)&& !zoomExtent))
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
@@ -263,6 +271,20 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.SetMatrix(matrix);
 
         LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+    }
+
+    private static bool IsEntirelyWithin(SKRect inner, Rect outer)
+    {
+        return inner.Width < outer.Width && inner.Height < outer.Height;
+    }
+
+    private static SKRect Round(SKRect rect)
+    {
+        return new SKRect(
+            (float)Math.Round(rect.Left, MidpointRounding.AwayFromZero),
+            (float)Math.Round(rect.Top, MidpointRounding.AwayFromZero),
+            (float)Math.Round(rect.Right, MidpointRounding.AwayFromZero),
+            (float)Math.Round(rect.Bottom, MidpointRounding.AwayFromZero));
     }
 
     public SKMatrix LogicalMatrix { get; private set; }
