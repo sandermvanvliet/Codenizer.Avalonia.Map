@@ -21,7 +21,6 @@ public class Image : MapObject
     }
 
     public override string Name { get; }
-    public override SKPaint Paint { get; }
     public override SKRect Bounds { get; }
     public override void Render(SKCanvas canvas)
     {
