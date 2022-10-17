@@ -177,7 +177,7 @@ public class MapRenderOperation : ICustomDrawOperation
             : SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
 
         var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
-        if (newBounds.Width < Bounds.Width)
+        if (newBounds.Width < Bounds.Width && newBounds.Height < Bounds.Height)
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
