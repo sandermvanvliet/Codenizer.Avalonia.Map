@@ -13,6 +13,7 @@ public class MapRenderOperation : ICustomDrawOperation
 {
     private static readonly SKColor CanvasBackgroundColor = SKColor.Parse("#FFFFFF");
     private readonly SKPaint _crossHairPaint;
+    private readonly SKPaint _alternateCrossHairPaint;
     private SKBitmap _bitmap;
     private Rect _bounds;
     private SKMatrix _logicalMatrix = SKMatrix.Empty;
@@ -20,10 +21,12 @@ public class MapRenderOperation : ICustomDrawOperation
     private SKRect _viewportBounds = SKRect.Empty;
     private string? _zoomElementName;
     private ZoomMode _zoomMode = ZoomMode.All;
+    private SKPoint? _viewportCenterOn;
 
     public MapRenderOperation()
     {
         _crossHairPaint = new SKPaint { Color = SKColor.Parse("#FF0000"), Style = SKPaintStyle.Fill };
+        _alternateCrossHairPaint = new SKPaint { Color = SKColor.Parse("#00FF00"), Style = SKPaintStyle.Fill };
 
         // This is to ensure we always have a bitmap to work with
         _bitmap = CreateBitmapFromControlBounds();
@@ -131,7 +134,7 @@ public class MapRenderOperation : ICustomDrawOperation
                     matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds);
+                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
                     break;
                 case ZoomMode.All:
                 default:
@@ -152,6 +155,7 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.Restore();
 
         RenderCrossHair(canvas);
+        RenderAlternativeCrossHair(canvas);
 
         canvas.Flush();
     }
@@ -161,6 +165,15 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.DrawLine(_viewportBounds.MidX, 0, _viewportBounds.MidX, _viewportBounds.Height, _crossHairPaint);
         canvas.DrawLine(0, _viewportBounds.MidY, _viewportBounds.Width, _viewportBounds.MidY, _crossHairPaint);
         canvas.DrawCircle(_viewportBounds.MidX, _viewportBounds.MidY, 2, _crossHairPaint);
+        canvas.DrawText($"{_viewportBounds.MidX}x{_viewportBounds.MidY}", new SKPoint(_viewportBounds.MidX, _viewportBounds.MidY), _crossHairPaint);
+    }
+
+    private void RenderAlternativeCrossHair(SKCanvas canvas)
+    {
+        canvas.DrawLine(_viewportBounds.MidX + 100, 0, _viewportBounds.MidX + 100, _viewportBounds.Height, _alternateCrossHairPaint);
+        canvas.DrawLine(0, _viewportBounds.MidY -100, _viewportBounds.Width, _viewportBounds.MidY - 100, _alternateCrossHairPaint);
+        canvas.DrawCircle(_viewportBounds.MidX + 100, _viewportBounds.MidY - 100, 2, _alternateCrossHairPaint);
+        canvas.DrawText($"{_viewportBounds.MidX+100}x{_viewportBounds.MidY-100}", new SKPoint(_viewportBounds.MidX+100, _viewportBounds.MidY-100), _alternateCrossHairPaint);
     }
 
     private void InitializeBitmap()
@@ -218,13 +231,14 @@ public class MapRenderOperation : ICustomDrawOperation
         return new SKRect(left, top, right, bottom);
     }
 
-    public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition)
+    public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition, SKPoint viewportCenterOn)
     {
         _zoomMode = ZoomMode.Point;
         ZoomLevel = level;
         ZoomCenter = mapPosition;
         CenterOnPosition = centerOnPosition;
         _zoomElementName = null;
+        _viewportCenterOn = viewportCenterOn;
     }
 
     public void ZoomAll()

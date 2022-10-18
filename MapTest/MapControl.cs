@@ -2,15 +2,15 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using SkiaSharp;
 using System.Collections.ObjectModel;
+using SkiaSharp;
 
 namespace MapTest;
 
 public class MapControl : UserControl
 {
     private readonly MapRenderOperation _renderOperation;
-    private SKPoint _mouseWheelZoomingCapturedPosition;
+    private Avalonia.Point? _mouseWheelZoomingCapturedPositionOnViewport;
     private bool _isMouseWheelZooming;
 
     public static readonly DirectProperty<MapControl, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<MapControl, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
@@ -81,15 +81,15 @@ public class MapControl : UserControl
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
-        const double step = 0.05;
+        const double step = 0.1;
 
         var positionOnViewport = e.GetPosition(this);
 
         if (!_isMouseWheelZooming)
         {
             _isMouseWheelZooming = true;
-            
-            _mouseWheelZoomingCapturedPosition = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
+
+            _mouseWheelZoomingCapturedPositionOnViewport = positionOnViewport;
         }
 
         var increment = e.Delta.Y == 0
@@ -104,9 +104,17 @@ public class MapControl : UserControl
         {
             newZoomLevel = 0.1f;
         }
+
+        _renderOperation.Zoom(
+            newZoomLevel,
+            _renderOperation.MapViewportPositionToMapPosition(_mouseWheelZoomingCapturedPositionOnViewport!.Value),
+            true,
+            new SKPoint(
+                (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.X,
+                (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.Y));
         
-        Zoom(newZoomLevel, false, _mouseWheelZoomingCapturedPosition);
-        
+        InvalidateVisual();
+
         e.Handled = true;
     }
 
@@ -115,7 +123,7 @@ public class MapControl : UserControl
         if (_isMouseWheelZooming)
         {
             _isMouseWheelZooming = false;
-            _mouseWheelZoomingCapturedPosition = SKPoint.Empty;
+            _mouseWheelZoomingCapturedPositionOnViewport = null;
             e.Handled = true;
             return;
         }
@@ -123,7 +131,7 @@ public class MapControl : UserControl
         base.OnPointerMoved(e);
     }
 
-    public void Zoom(float level, bool centerOnPosition, SKPoint mapPosition, string? elementName = null)
+    public void Zoom(float level, bool centerOnPosition, Avalonia.Point viewportPosition, string? elementName = null)
     {
         if (!string.IsNullOrEmpty(elementName))
         {
@@ -131,7 +139,8 @@ public class MapControl : UserControl
         }
         else
         {
-            _renderOperation.Zoom(level, mapPosition, centerOnPosition);
+            var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
+            _renderOperation.Zoom(level, mapPosition, centerOnPosition, new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y));
         }
 
         InvalidateVisual();

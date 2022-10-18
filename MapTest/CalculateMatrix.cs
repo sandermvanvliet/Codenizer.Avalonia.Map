@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using SkiaSharp;
 
 namespace MapTest;
@@ -76,7 +77,7 @@ public class CalculateMatrix
 
         return matrix.PostConcat(SKMatrix.CreateTranslation(translateX, translateY));
     }
-    
+
     /// <summary>
     /// Calculate a matrix that attempts to scale to the given level and centered on the given position
     /// </summary>
@@ -86,9 +87,16 @@ public class CalculateMatrix
     /// <param name="centerOnPosition"><c>true</c> when the given position should be centered in the viewport</param>
     /// <param name="mapBounds">The total bounds of all map objects</param>
     /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <param name="viewportCenterPosition"></param>
     /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
-    public static SKMatrix ForPoint(float scale, float x, float y, bool centerOnPosition, SKRect mapBounds,
-        SKRect viewportBounds)
+    public static SKMatrix ForPoint(
+        float scale, 
+        float x, 
+        float y, 
+        bool centerOnPosition, 
+        SKRect mapBounds,
+        SKRect viewportBounds, 
+        SKPoint viewportCenterPosition)
     {
         var scaleMatrix = SKMatrix.CreateScale(scale, scale, 0, 0);
         
@@ -152,7 +160,7 @@ public class CalculateMatrix
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
 
-            newBounds = translateMatrix.MapRect(newBounds);
+            newBounds = scaleMatrix.MapRect(newBounds);
         }
 
         if (newBounds.Height < viewportBounds.Height)
@@ -164,22 +172,11 @@ public class CalculateMatrix
             // bitmap.
             var offset = (viewportBounds.Height - newBounds.Height) / 2;
 
-            var shift = -x;
-
-            if (newBounds.Right + shift < viewportBounds.Right)
-            {
-                shift = viewportBounds.Right - newBounds.Right;
-            }
-
-            var translateMatrix = SKMatrix.CreateTranslation(
-                centerOnPosition
-                    ? 0
-                    : shift,
-                offset);
+            var translateMatrix = SKMatrix.CreateTranslation(0, offset);
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
 
-            newBounds = translateMatrix.MapRect(newBounds);
+            newBounds = scaleMatrix.MapRect(mapBounds);
         }
 
         if ((newBounds.Left < 0 || newBounds.Top < 0) &&
@@ -191,6 +188,8 @@ public class CalculateMatrix
                 -Math.Min(0, newBounds.Top));
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
+            
+            newBounds = scaleMatrix.MapRect(mapBounds);
         }
 
         // Apply the scaling matrix
@@ -200,13 +199,86 @@ public class CalculateMatrix
         {
             var mappedDesiredCenter = matrix.MapPoint(x, y);
 
-            var translateX = mappedDesiredCenter.X - viewportBounds.MidX;
-            var translateY = mappedDesiredCenter.Y - viewportBounds.MidY;
+            var translateX = mappedDesiredCenter.X - viewportCenterPosition.X;
+            var translateY = mappedDesiredCenter.Y - viewportCenterPosition.Y;
 
             var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
+            
+            matrix = matrix.PostConcat(translateMatrix);
+            
+            newBounds = matrix.MapRect(mapBounds);
+        }
+
+        // Ensure that the edges of the map always snap to the edges of the viewport
+        if (newBounds.Right < viewportBounds.Right && newBounds.Width >= viewportBounds.Width)
+        {
+            var offsetX = viewportBounds.Right - newBounds.Right;
+
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, 0));
+
+            newBounds = matrix.MapRect(mapBounds);
+        }
+        if(newBounds.Left > viewportBounds.Left && newBounds.Width >= viewportBounds.Width)
+        {
+            var offsetX = viewportBounds.Left - newBounds.Left;
+
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, 0));
+
+            newBounds = matrix.MapRect(mapBounds);
+        }
+        if (newBounds.Top > viewportBounds.Top && newBounds.Height >= viewportBounds.Height)
+        {
+            var offsetY = viewportBounds.Top - newBounds.Top;
+
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(0, offsetY));
+
+            newBounds = matrix.MapRect(mapBounds);
+        }
+        if (newBounds.Bottom < viewportBounds.Bottom && newBounds.Height >= viewportBounds.Height)
+        {
+            var offsetY = viewportBounds.Bottom - newBounds.Bottom;
+
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(0, offsetY));
+
+            newBounds = matrix.MapRect(mapBounds);
+        }
+        
+        // Recenter vertically
+        if (newBounds.Height < viewportBounds.Height && Math.Abs(viewportBounds.MidY - newBounds.MidY) > 0.1)
+        {
+            var offset = viewportBounds.MidY - newBounds.MidY;
+
+            var translateMatrix = SKMatrix.CreateTranslation(0, offset);
 
             matrix = matrix.PostConcat(translateMatrix);
+
+            newBounds = matrix.MapRect(mapBounds);
         }
+        
+        // Recenter horizontally
+        if (newBounds.Width < viewportBounds.Width && Math.Abs(viewportBounds.MidX - newBounds.MidX) > 0.1)
+        {
+            var offset = viewportBounds.MidX - newBounds.MidX;
+
+            var translateMatrix = SKMatrix.CreateTranslation(offset, 0);
+
+            matrix = matrix.PostConcat(translateMatrix);
+
+            newBounds = matrix.MapRect(mapBounds);
+        }
+
+        Debug.WriteLine($"New bounds: width: {newBounds.Width,4:0}, left: {newBounds.Left,4:0}, top: {newBounds.Top,4:0}, right: {newBounds.Right,4:0}, bottom: {newBounds.Bottom,4:0}");
+
+        var invBounds = matrix.Invert().MapRect(newBounds);
+        Debug.WriteLine($"INV bounds: width: {invBounds.Width,4:0}, left: {invBounds.Left,4:0}, top: {invBounds.Top,4:0}, right: {invBounds.Right,4:0}, bottom: {invBounds.Bottom,4:0}");
+
+        var baseScale = mapBounds.Width / viewportBounds.Width;
+        var vpmBounds = SKMatrix.CreateScale(baseScale, baseScale).MapRect(viewportBounds);
+        Debug.WriteLine($"VPM bounds: width: {vpmBounds.Width,4:0}, left: {vpmBounds.Left,4:0}, top: {vpmBounds.Top,4:0}, right: {vpmBounds.Right,4:0}, bottom: {vpmBounds.Bottom,4:0}");
+        var vptBounds = matrix.MapRect(vpmBounds);
+        Debug.WriteLine($"VPT bounds: width: {vptBounds.Width,4:0}, left: {vptBounds.Left,4:0}, top: {vptBounds.Top,4:0}, right: {vptBounds.Right,4:0}, bottom: {vptBounds.Bottom,4:0}");
+        
+        Debug.WriteLine("----");
 
         return matrix;
     }
