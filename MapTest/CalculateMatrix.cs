@@ -217,8 +217,6 @@ public class CalculateMatrix
             var translateMatrix = SKMatrix.CreateTranslation(offset, 0);
 
             matrix = matrix.PostConcat(translateMatrix);
-
-            newBounds = matrix.MapRect(mapBounds);
         }
 
         return matrix;
