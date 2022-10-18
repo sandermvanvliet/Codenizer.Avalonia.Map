@@ -132,7 +132,7 @@ public class MapRenderOperation : ICustomDrawOperation
                     ZoomExtent(canvas, ZoomElementName);
                     break;
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, false);
+                    ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition);
                     break;
                 default: /* including ZoomMode.All */
                     ZoomAll(canvas);
@@ -251,7 +251,7 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.DrawCircle(_viewPortCenter.X, _viewPortCenter.Y, 2, _crossHairPaint);
     }
 
-    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition, bool zoomExtent)
+    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
     {
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
@@ -285,8 +285,7 @@ public class MapRenderOperation : ICustomDrawOperation
             newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
         }
 
-        if (!zoomExtent &&
-            IsEntirelyWithin(newBounds, Bounds) &&
+        if (IsEntirelyWithin(newBounds, Bounds) &&
             IsOutsideViewport(newBounds, Bounds))
         {
             var translateX = -Math.Min(newBounds.Left, 0);
