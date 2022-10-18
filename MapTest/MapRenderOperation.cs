@@ -16,8 +16,8 @@ public class MapRenderOperation : ICustomDrawOperation
     private Rect _bounds;
     private readonly SKPaint _crossHairPaint;
     private SKRect _mapObjectsBounds;
-    private SKPoint _viewPortCenter;
     private ZoomMode _zoomMode = ZoomMode.All;
+    private SKRect _viewportBounds;
 
     public MapRenderOperation()
     {
@@ -55,27 +55,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void AdjustZoomLevelToBitmapBounds()
     {
-        ZoomLevel = CalculateScale(
-            (float)Bounds.Width,
-            (float)Bounds.Height,
+        ZoomLevel = CalculateMatrix.CalculateScale(
+            _viewportBounds.Width,
+            _viewportBounds.Height,
             _bitmap.Width,
             _bitmap.Height);
-    }
-
-    private void AdjustZoomLevelToMapObjectBounds()
-    {
-        if (_mapObjectsBounds.IsEmpty)
-        {
-            ZoomLevel = 1;
-        }
-        else
-        {
-            ZoomLevel = CalculateScale(
-                (float)Bounds.Width,
-                (float)Bounds.Height,
-                _mapObjectsBounds.Width,
-                _mapObjectsBounds.Height);
-        }
     }
 
     public Rect Bounds
@@ -84,8 +68,8 @@ public class MapRenderOperation : ICustomDrawOperation
         set
         {
             _bounds = value;
-
-            _viewPortCenter = new SKPoint((float)_bounds.Width / 2, (float)_bounds.Height / 2);
+            
+            _viewportBounds = new SKRect(0, 0, (float)value.Width, (float)value.Height);
 
             InitializeBitmap();
         }
@@ -126,18 +110,25 @@ public class MapRenderOperation : ICustomDrawOperation
 
         if (MapObjects.Any())
         {
+            SKMatrix matrix;
+
             switch (_zoomMode)
             {
                 case ZoomMode.Extent when !string.IsNullOrEmpty(ZoomElementName):
-                    ZoomExtent(canvas, ZoomElementName);
+                    var elementBounds = MapObjects.Single(o => o.Name == ZoomElementName).Bounds;
+                    matrix = CalculateMatrix.ForExtent(canvas.TotalMatrix, elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    ZoomOnPoint(canvas, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition);
+                    matrix = CalculateMatrix.ForPoint(canvas.TotalMatrix, ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds);
                     break;
                 default: /* including ZoomMode.All */
-                    ZoomAll(canvas);
+                    matrix  = CalculateMatrix.ToFitViewport(canvas.TotalMatrix, _viewportBounds, _mapObjectsBounds);
                     break;
             }
+            
+            canvas.SetMatrix(matrix);
+        
+            LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
 
             foreach (MapObject mapObject in MapObjects)
             {
@@ -152,260 +143,15 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.Flush();
     }
 
-    private void ZoomExtent(SKCanvas canvas, string zoomElementName)
-    {
-        var elementBounds = MapObjects.Single(o => o.Name == zoomElementName).Bounds;
-
-        var paddedElementBounds = elementBounds;
-
-        if (elementBounds != _mapObjectsBounds)
-        {
-            paddedElementBounds = Pad(elementBounds, 20);
-        }
-
-        var zoomLevel = CalculateScale(
-            (float)Bounds.Width,
-            (float)Bounds.Height,
-            paddedElementBounds.Width,
-            paddedElementBounds.Height);
-
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-
-        // Apply the scaling matrix
-        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
-
-        var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
-
-        var translateX = mappedDesiredCenter.X - _viewPortCenter.X;
-        var translateY = mappedDesiredCenter.Y - _viewPortCenter.Y;
-
-        var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
-
-        matrix = matrix.PostConcat(translateMatrix);
-
-        canvas.SetMatrix(matrix);
-
-        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
-    }
-
-    private void ZoomAll(SKCanvas canvas)
-    {
-        var zoomLevel = CalculateScale(
-            (float)Bounds.Width,
-            (float)Bounds.Height,
-            _mapObjectsBounds.Width,
-            _mapObjectsBounds.Height);
-
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-        var newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
-
-        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
-
-        var translateX = 0f;
-        var translateY = 0f;
-
-        if (newBounds.Width < Bounds.Width)
-        {
-            // Center horizontally
-            translateX = ((float)Bounds.Width - newBounds.Width) / 2;
-        }
-
-        if (newBounds.Height < Bounds.Height)
-        {
-            // Center vertically
-            translateY = ((float)Bounds.Height - newBounds.Height) / 2;
-        }
-
-        // Handle situations where top/left isn't at the origin
-        translateX += -Math.Min(newBounds.Left, 0);
-        translateY += -Math.Min(newBounds.Top, 0);
-
-        var translate = SKMatrix.CreateTranslation(translateX, translateY);
-
-        matrix = matrix.PostConcat(translate);
-
-        canvas.SetMatrix(matrix);
-        
-        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
-    }
-
-    private static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
-    {
-        var scale = outerWidth / innerWidth;
-
-        // Check whether the inner bounds are taller
-        // than wide. If that's the case the scale
-        // needs to be calculated using height instead.
-        if (scale * innerHeight > outerHeight)
-        {
-            scale = outerHeight / innerHeight;
-        }
-
-        return scale;
-    }
-
     private void RenderCrossHair(SKCanvas canvas)
     {
-        canvas.DrawLine(_viewPortCenter.X, 0, _viewPortCenter.X, (float)Bounds.Height, _crossHairPaint);
-        canvas.DrawLine(0, _viewPortCenter.Y, (float)Bounds.Width, _viewPortCenter.Y, _crossHairPaint);
-        canvas.DrawCircle(_viewPortCenter.X, _viewPortCenter.Y, 2, _crossHairPaint);
-    }
-
-    private void ZoomOnPoint(SKCanvas canvas, float zoomLevel, float x, float y, bool centerOnPosition)
-    {
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-
-        var newBounds = Round(scaleMatrix.MapRect(_mapObjectsBounds));
-
-        if (IsEntirelyWithin(newBounds, Bounds))
-        {
-            // Clip the lower zoom to ensure that you can't zoom out
-            // further than the whole object being visible.
-            AdjustZoomLevelToMapObjectBounds();
-
-            scaleMatrix = SKMatrix.CreateScale(ZoomLevel, ZoomLevel, x, y);
-
-            // Ensure that when zooming out the bitmap never
-            // appears away from the origin (top/left 0,0)
-            // so that there won't be any gaps on screen.
-            var topLeftMapped = scaleMatrix.MapPoint(_mapObjectsBounds.Left, _mapObjectsBounds.Top);
-
-            if (topLeftMapped.X < 0 || topLeftMapped.Y < 0)
-            {
-                var scaleTranslateX = -Math.Min(0, topLeftMapped.X);
-                var scaleTranslateY = -Math.Min(0, topLeftMapped.Y);
-
-                if (scaleTranslateX != 0 || scaleTranslateY != 0)
-                {
-                    scaleMatrix = scaleMatrix.PostConcat(SKMatrix.CreateTranslation(scaleTranslateX, scaleTranslateY));
-                }
-            }
-
-            // Update new bounds
-            newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
-        }
-
-        if (IsEntirelyWithin(newBounds, Bounds) &&
-            IsOutsideViewport(newBounds, Bounds))
-        {
-            var translateX = -Math.Min(newBounds.Left, 0);
-            var translateY = -Math.Min(newBounds.Top, 0);
-
-            var translateMatrix = SKMatrix.CreateTranslation(translateX, translateY);
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            // Update new bounds
-            newBounds = scaleMatrix.MapRect(_mapObjectsBounds);
-        }
-
-        if (newBounds.Width < Bounds.Width)
-        {
-            // As we've already corrected for the aspect ratio
-            // of the map objects bitmap, it turns out that
-            // this one is indeed taller than wide.
-            // To make it look nice we should center the
-            // bitmap.
-            var offset = (Bounds.Width - newBounds.Width) / 2;
-
-            var translateMatrix = SKMatrix.CreateTranslation((float)offset, 0);
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            newBounds = translateMatrix.MapRect(newBounds);
-        }
-
-        if (newBounds.Height < Bounds.Height)
-        {
-            // As we've already corrected for the aspect ratio
-            // of the map objects bitmap, it turns out that
-            // this one is indeed wider than tall.
-            // To make it look nice we should center the
-            // bitmap.
-            var offset = (Bounds.Height - newBounds.Height) / 2;
-
-            var shift = -x;
-
-            if (newBounds.Right + shift < Bounds.Right)
-            {
-                shift = (float)Bounds.Right - newBounds.Right;
-            }
-
-            var translateMatrix = SKMatrix.CreateTranslation(
-                centerOnPosition
-                    ? 0
-                    : shift,
-                (float)offset);
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            newBounds = translateMatrix.MapRect(newBounds);
-        }
-
-        if ((newBounds.Left < 0 || newBounds.Top < 0) &&
-            newBounds.Width <= Bounds.Width &&
-            newBounds.Height <= Bounds.Height)
-        {
-            var translateMatrix = SKMatrix.CreateTranslation(
-                -Math.Min(0, newBounds.Left),
-                -Math.Min(0, newBounds.Top));
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-        }
-
-        // Apply the scaling matrix
-        var matrix = canvas.TotalMatrix.PostConcat(scaleMatrix);
-
-        if (centerOnPosition)
-        {
-            var mappedDesiredCenter = matrix.MapPoint(x, y);
-
-            var translateX = mappedDesiredCenter.X - _viewPortCenter.X;
-            var translateY = mappedDesiredCenter.Y - _viewPortCenter.Y;
-
-            var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
-
-            matrix = matrix.PostConcat(translateMatrix);
-        }
-
-        canvas.SetMatrix(matrix);
-
-        LogicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
-    }
-
-    private static bool IsOutsideViewport(SKRect inner, Rect outer)
-    {
-        return inner.Left < outer.Left ||
-               inner.Top < outer.Top ||
-               inner.Right > outer.Right ||
-               inner.Bottom > outer.Bottom;
-    }
-
-    private static bool IsEntirelyWithin(SKRect inner, Rect outer)
-    {
-        return inner.Width < outer.Width && inner.Height < outer.Height;
-    }
-
-    private static SKRect Round(SKRect rect)
-    {
-        return new SKRect(
-            (float)Math.Round(rect.Left, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Top, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Right, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Bottom, MidpointRounding.AwayFromZero));
+        canvas.DrawLine(_viewportBounds.MidX, 0, _viewportBounds.MidX, _viewportBounds.Height, _crossHairPaint);
+        canvas.DrawLine(0, _viewportBounds.MidY, _viewportBounds.Width, _viewportBounds.MidY, _crossHairPaint);
+        canvas.DrawCircle(_viewportBounds.MidX, _viewportBounds.MidY, 2, _crossHairPaint);
     }
 
     public SKMatrix LogicalMatrix { get; private set; }
     public string? ZoomElementName { get; private set; }
-
-    private static SKRect Pad(SKRect bounds, int padding)
-    {
-        return new SKRect(
-            bounds.Left - padding,
-            bounds.Top - padding,
-            bounds.Right + padding,
-            bounds.Bottom + padding);
-    }
 
     public void Dispose()
     {
