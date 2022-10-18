@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using SkiaSharp;
 
 namespace MapTest;
@@ -234,19 +233,6 @@ public class CalculateMatrix
 
             newBounds = matrix.MapRect(mapBounds);
         }
-
-        Debug.WriteLine($"New bounds: width: {newBounds.Width,4:0}, left: {newBounds.Left,4:0}, top: {newBounds.Top,4:0}, right: {newBounds.Right,4:0}, bottom: {newBounds.Bottom,4:0}");
-
-        var invBounds = matrix.Invert().MapRect(newBounds);
-        Debug.WriteLine($"INV bounds: width: {invBounds.Width,4:0}, left: {invBounds.Left,4:0}, top: {invBounds.Top,4:0}, right: {invBounds.Right,4:0}, bottom: {invBounds.Bottom,4:0}");
-
-        var baseScale = mapBounds.Width / viewportBounds.Width;
-        var vpmBounds = SKMatrix.CreateScale(baseScale, baseScale).MapRect(viewportBounds);
-        Debug.WriteLine($"VPM bounds: width: {vpmBounds.Width,4:0}, left: {vpmBounds.Left,4:0}, top: {vpmBounds.Top,4:0}, right: {vpmBounds.Right,4:0}, bottom: {vpmBounds.Bottom,4:0}");
-        var vptBounds = matrix.MapRect(vpmBounds);
-        Debug.WriteLine($"VPT bounds: width: {vptBounds.Width,4:0}, left: {vptBounds.Left,4:0}, top: {vptBounds.Top,4:0}, right: {vptBounds.Right,4:0}, bottom: {vptBounds.Bottom,4:0}");
-        
-        Debug.WriteLine("----");
 
         return matrix;
     }
