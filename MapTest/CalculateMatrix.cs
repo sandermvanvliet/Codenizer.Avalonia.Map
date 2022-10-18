@@ -146,19 +146,6 @@ public class CalculateMatrix
             newBounds = scaleMatrix.MapRect(mapBounds);
         }
 
-        if ((newBounds.Left < 0 || newBounds.Top < 0) &&
-            newBounds.Width <= viewportBounds.Width &&
-            newBounds.Height <= viewportBounds.Height)
-        {
-            var translateMatrix = SKMatrix.CreateTranslation(
-                -Math.Min(0, newBounds.Left),
-                -Math.Min(0, newBounds.Top));
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-            
-            newBounds = scaleMatrix.MapRect(mapBounds);
-        }
-
         // Apply the scaling matrix
         var matrix = scaleMatrix;
 
