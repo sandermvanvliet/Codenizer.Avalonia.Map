@@ -32,7 +32,7 @@ public class MapRenderOperation : ICustomDrawOperation
         MapObjects.CollectionChanged += (_, _) =>
         {
             var originalBounds = _mapObjectsBounds;
-            _mapObjectsBounds = CalculateTotalBoundsForMapObjects();
+            _mapObjectsBounds = CalculateTotalBoundsForMapObjects(MapObjects);
 
             if (Math.Abs(_mapObjectsBounds.Width - originalBounds.Width) > 0.1 ||
                 Math.Abs(_mapObjectsBounds.Height - originalBounds.Height) > 0.1)
@@ -45,7 +45,9 @@ public class MapRenderOperation : ICustomDrawOperation
 
             if (!_viewportBounds.IsEmpty && _bitmap.Width > _viewportBounds.Width)
             {
-                AdjustZoomLevelToBitmapBounds();
+                // As we're re-initializing, ensure that the entire
+                // bitmap will be visible in the viewport
+                _zoomMode = ZoomMode.All;
             }
 
             if (!string.IsNullOrEmpty(_zoomElementName) && MapObjects.All(m => m.Name != _zoomElementName))
@@ -112,11 +114,6 @@ public class MapRenderOperation : ICustomDrawOperation
         return false;
     }
 
-    private void AdjustZoomLevelToBitmapBounds()
-    {
-        ZoomLevel = CalculateMatrix.CalculateScale(new SKRect(0, 0, _bitmap.Width, _bitmap.Height), _viewportBounds);
-    }
-
     private void RenderCanvas(SKCanvas canvas)
     {
         canvas.Clear(CanvasBackgroundColor);
@@ -136,7 +133,8 @@ public class MapRenderOperation : ICustomDrawOperation
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
                     matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds);
                     break;
-                default: /* including ZoomMode.All */
+                case ZoomMode.All:
+                default:
                     matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
                     break;
             }
@@ -171,7 +169,9 @@ public class MapRenderOperation : ICustomDrawOperation
             ? CreateBitmapFromMapObjectsBounds()
             : CreateBitmapFromControlBounds();
 
-        AdjustZoomLevelToBitmapBounds();
+        // As we're re-initializing, ensure that the entire
+        // bitmap will be visible in the viewport
+        _zoomMode = ZoomMode.All;
 
         using var canvas = new SKCanvas(_bitmap);
         canvas.Clear(CanvasBackgroundColor);
@@ -200,14 +200,14 @@ public class MapRenderOperation : ICustomDrawOperation
         return new SKBitmap((int)width, (int)height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 
-    private SKRect CalculateTotalBoundsForMapObjects()
+    private static SKRect CalculateTotalBoundsForMapObjects(ObservableCollection<MapObject> mapObjects)
     {
         var left = 0f;
         var top = 0f;
         var right = 0f;
         var bottom = 0f;
 
-        foreach (var mapObject in MapObjects)
+        foreach (var mapObject in mapObjects)
         {
             left = Math.Min(mapObject.Bounds.Left, left);
             top = Math.Min(mapObject.Bounds.Top, top);
