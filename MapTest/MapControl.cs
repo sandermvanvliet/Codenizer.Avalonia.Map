@@ -131,7 +131,7 @@ public class MapControl : UserControl
         }
         else
         {
-            _renderOperation.Zoom(level, mapPosition, centerOnPosition, elementName);
+            _renderOperation.Zoom(level, mapPosition, centerOnPosition);
         }
 
         InvalidateVisual();

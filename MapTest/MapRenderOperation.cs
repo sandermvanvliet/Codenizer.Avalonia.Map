@@ -474,12 +474,12 @@ public class MapRenderOperation : ICustomDrawOperation
         return new SKRect(left, top, right, bottom);
     }
 
-    public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition, string? elementName)
+    public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition)
     {
         ZoomLevel = level;
         ZoomCenter = mapPosition;
         CenterOnPosition = centerOnPosition;
-        ZoomElementName = elementName;
+        ZoomElementName = null;
     }
 
     public void ZoomAll()
