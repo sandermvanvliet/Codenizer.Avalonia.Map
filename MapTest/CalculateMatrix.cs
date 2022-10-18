@@ -147,38 +147,6 @@ public class CalculateMatrix
             newBounds = scaleMatrix.MapRect(mapBounds);
         }
 
-        if (newBounds.Width < viewportBounds.Width)
-        {
-            // As we've already corrected for the aspect ratio
-            // of the map objects bitmap, it turns out that
-            // this one is indeed taller than wide.
-            // To make it look nice we should center the
-            // bitmap.
-            var offset = (viewportBounds.Width - newBounds.Width) / 2;
-
-            var translateMatrix = SKMatrix.CreateTranslation(offset, 0);
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            newBounds = scaleMatrix.MapRect(newBounds);
-        }
-
-        if (newBounds.Height < viewportBounds.Height)
-        {
-            // As we've already corrected for the aspect ratio
-            // of the map objects bitmap, it turns out that
-            // this one is indeed wider than tall.
-            // To make it look nice we should center the
-            // bitmap.
-            var offset = (viewportBounds.Height - newBounds.Height) / 2;
-
-            var translateMatrix = SKMatrix.CreateTranslation(0, offset);
-
-            scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            newBounds = scaleMatrix.MapRect(mapBounds);
-        }
-
         if ((newBounds.Left < 0 || newBounds.Top < 0) &&
             newBounds.Width <= viewportBounds.Width &&
             newBounds.Height <= viewportBounds.Height)
