@@ -476,6 +476,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition)
     {
+        _zoomMode = ZoomMode.Point;
         ZoomLevel = level;
         ZoomCenter = mapPosition;
         CenterOnPosition = centerOnPosition;
