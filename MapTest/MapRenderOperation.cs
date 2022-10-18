@@ -114,11 +114,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private void AdjustZoomLevelToBitmapBounds()
     {
-        ZoomLevel = CalculateMatrix.CalculateScale(
-            _viewportBounds.Width,
-            _viewportBounds.Height,
-            _bitmap.Width,
-            _bitmap.Height);
+        ZoomLevel = CalculateMatrix.CalculateScale(new SKRect(0, 0, _bitmap.Width, _bitmap.Height), _viewportBounds);
     }
 
     private void RenderCanvas(SKCanvas canvas)

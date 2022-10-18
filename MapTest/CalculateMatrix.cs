@@ -24,11 +24,7 @@ public class CalculateMatrix
             paddedElementBounds = Pad(elementBounds, 20);
         }
 
-        var zoomLevel = CalculateScale(
-            viewportBounds.Width,
-            viewportBounds.Height,
-            paddedElementBounds.Width,
-            paddedElementBounds.Height);
+        var zoomLevel = CalculateScale(paddedElementBounds, viewportBounds);
         
         var matrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
@@ -51,11 +47,7 @@ public class CalculateMatrix
     /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
     public static SKMatrix ToFitViewport(SKRect viewportBounds, SKRect mapBounds)
     {
-        var scale = CalculateScale(
-            viewportBounds.Width,
-            viewportBounds.Height,
-            mapBounds.Width,
-            mapBounds.Height);
+        var scale = CalculateScale(mapBounds, viewportBounds);
 
         var matrix = SKMatrix.CreateScale(scale, scale, 0, 0);
 
@@ -99,7 +91,10 @@ public class CalculateMatrix
         SKRect viewportBounds)
     {
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-
+        
+        // Calculate the scaled bounds. We need this to center
+        // the map when either height or width are not the same
+        // as the viewport
         var newBounds = Round(scaleMatrix.MapRect(mapBounds));
 
         if (IsEntirelyWithin(newBounds, viewportBounds))
@@ -107,11 +102,7 @@ public class CalculateMatrix
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
             //AdjustZoomLevelToMapObjectBounds();
-            zoomLevel = CalculateScale(
-                viewportBounds.Width,
-                viewportBounds.Height,
-                mapBounds.Width,
-                mapBounds.Height);
+            zoomLevel = CalculateScale(mapBounds, viewportBounds);
 
             scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
 
@@ -221,49 +212,80 @@ public class CalculateMatrix
         return matrix;
     }
 
-    public static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
+    /// <summary>
+    /// Calculate a scale that will ensure that the inner bounds fit exactly to the outer bounds
+    /// </summary>
+    /// <remarks>When the inner bounds are taller than wide, the ratio is recalculated based on height thus ensuring the inner bounds will always fit</remarks>
+    public static float CalculateScale(SKRect inner, SKRect outer)
     {
-        var scale = outerWidth / innerWidth;
+        var scale = outer.Width / inner.Width;
 
         // Check whether the inner bounds are taller
         // than wide. If that's the case the scale
         // needs to be calculated using height instead.
-        if (scale * innerHeight > outerHeight)
+        if (scale * inner.Height > outer.Height)
         {
-            scale = outerHeight / innerHeight;
+            scale = outer.Height / inner.Height;
         }
 
         return scale;
     }
 
-    private static bool IsOutsideViewport(SKRect inner, SKRect outer)
+    /// <summary>
+    /// Determine whether the given bounds are (partially) outside of the viewport
+    /// </summary>
+    /// <param name="inner">The bounds to check</param>
+    /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <returns><c>true</c> when any part of the input is outside the viewport, otherwise <c>false</c></returns>
+    private static bool IsOutsideViewport(SKRect inner, SKRect viewportBounds)
     {
-        return inner.Left < outer.Left ||
-               inner.Top < outer.Top ||
-               inner.Right > outer.Right ||
-               inner.Bottom > outer.Bottom;
+        return inner.Left < viewportBounds.Left ||
+               inner.Top < viewportBounds.Top ||
+               inner.Right > viewportBounds.Right ||
+               inner.Bottom > viewportBounds.Bottom;
     }
 
+    /// <summary>
+    /// Determine whether the given bounds are fully inside of the outer bounds
+    /// </summary>
+    /// <param name="inner">The bounds to check</param>
+    /// <param name="outer">The bounds that <paramref name="inner"/> should fall inside</param>
+    /// <returns><c>true</c> when the input is inside the outer bounds, otherwise <c>false</c></returns>
     private static bool IsEntirelyWithin(SKRect inner, SKRect outer)
     {
-        return inner.Width < outer.Width && inner.Height < outer.Height;
+        return inner.Width < outer.Width && 
+               inner.Height < outer.Height;
     }
 
-    private static SKRect Round(SKRect rect)
+    /// <summary>
+    /// Round the input <see cref="SKRect"/> to values with zero decimals
+    /// </summary>
+    /// <remarks>
+    /// <para>Values are rounded away from zero, <c>9.9</c> will become <c>10</c></para>
+    /// <para>This method is useful when working with scaled rectangles where a value approaches a whole number but not quite, for example <c>999.999999</c> instead of <c>1000</c></para></remarks>
+    /// <param name="input">The <see cref="SKRect"/> to scale</param>
+    /// <returns>A <see cref="SKRect"/> with all values rounded to zero decimals</returns>
+    private static SKRect Round(SKRect input)
     {
         return new SKRect(
-            (float)Math.Round(rect.Left, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Top, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Right, MidpointRounding.AwayFromZero),
-            (float)Math.Round(rect.Bottom, MidpointRounding.AwayFromZero));
+            (float)Math.Round(input.Left, MidpointRounding.AwayFromZero),
+            (float)Math.Round(input.Top, MidpointRounding.AwayFromZero),
+            (float)Math.Round(input.Right, MidpointRounding.AwayFromZero),
+            (float)Math.Round(input.Bottom, MidpointRounding.AwayFromZero));
     }
 
-    private static SKRect Pad(SKRect bounds, int padding)
+    /// <summary>
+    /// Increase the size of the given bounds in all directions
+    /// </summary>
+    /// <param name="input">The <see cref="SKRect"/> to increase</param>
+    /// <param name="padding">The value to increase by</param>
+    /// <returns>A new <see cref="SKRect"/> instance with increased size</returns>
+    private static SKRect Pad(SKRect input, int padding)
     {
         return new SKRect(
-            bounds.Left - padding,
-            bounds.Top - padding,
-            bounds.Right + padding,
-            bounds.Bottom + padding);
+            input.Left - padding,
+            input.Top - padding,
+            input.Right + padding,
+            input.Bottom + padding);
     }
 }
