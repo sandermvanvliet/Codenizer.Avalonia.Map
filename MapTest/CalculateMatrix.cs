@@ -5,7 +5,7 @@ namespace MapTest;
 
 public class CalculateMatrix
 {
-    public static SKMatrix ForExtent(SKMatrix canvasTotalMatrix, SKRect elementBounds, SKRect viewportBounds, SKRect mapBounds)
+    public static SKMatrix ForExtent(SKRect elementBounds, SKRect viewportBounds, SKRect mapBounds)
     {
         var paddedElementBounds = elementBounds;
 
@@ -23,7 +23,7 @@ public class CalculateMatrix
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
         // Apply the scaling matrix
-        var matrix = canvasTotalMatrix.PostConcat(scaleMatrix);
+        var matrix = scaleMatrix;
 
         var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
         
@@ -61,7 +61,7 @@ public class CalculateMatrix
             bounds.Bottom + padding);
     }
 
-    public static SKMatrix ToFitViewport(SKMatrix canvasTotalMatrix, SKRect viewportBounds, SKRect mapBounds)
+    public static SKMatrix ToFitViewport(SKRect viewportBounds, SKRect mapBounds)
     {
         var zoomLevel = CalculateScale(
             viewportBounds.Width,
@@ -72,7 +72,7 @@ public class CalculateMatrix
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
         var newBounds = scaleMatrix.MapRect(mapBounds);
 
-        var matrix = canvasTotalMatrix.PostConcat(scaleMatrix);
+        var matrix = scaleMatrix;
 
         var translateX = 0f;
         var translateY = 0f;
@@ -100,7 +100,7 @@ public class CalculateMatrix
         return matrix;
     }
 
-    public static SKMatrix ForPoint(SKMatrix canvasTotalMatrix, float zoomLevel, float x, float y, bool centerOnPosition, SKRect mapBounds, SKRect viewportBounds)
+    public static SKMatrix ForPoint(float zoomLevel, float x, float y, bool centerOnPosition, SKRect mapBounds, SKRect viewportBounds)
     {
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
@@ -111,7 +111,7 @@ public class CalculateMatrix
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
             //AdjustZoomLevelToMapObjectBounds();
-            zoomLevel = CalculateMatrix.CalculateScale(
+            zoomLevel = CalculateScale(
                 viewportBounds.Width,
                 viewportBounds.Height,
                 mapBounds.Width,
@@ -208,7 +208,7 @@ public class CalculateMatrix
         }
 
         // Apply the scaling matrix
-        var matrix = canvasTotalMatrix.PostConcat(scaleMatrix);
+        var matrix = scaleMatrix;
 
         if (centerOnPosition)
         {

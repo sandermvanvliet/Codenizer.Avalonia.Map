@@ -135,15 +135,13 @@ public class MapRenderOperation : ICustomDrawOperation
             {
                 case ZoomMode.Extent when !string.IsNullOrEmpty(_zoomElementName):
                     var elementBounds = MapObjects.Single(o => o.Name == _zoomElementName).Bounds;
-                    matrix = CalculateMatrix.ForExtent(canvas.TotalMatrix, elementBounds, _viewportBounds,
-                        _mapObjectsBounds);
+                    matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    matrix = CalculateMatrix.ForPoint(canvas.TotalMatrix, ZoomLevel, ZoomCenter.X, ZoomCenter.Y,
-                        CenterOnPosition, _mapObjectsBounds, _viewportBounds);
+                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds);
                     break;
                 default: /* including ZoomMode.All */
-                    matrix = CalculateMatrix.ToFitViewport(canvas.TotalMatrix, _viewportBounds, _mapObjectsBounds);
+                    matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
                     break;
             }
 
