@@ -5,12 +5,22 @@ namespace MapTest;
 
 public class CalculateMatrix
 {
+    /// <summary>
+    /// Calculate a matrix that attempts to maximize the element bounds within the viewport
+    /// </summary>
+    /// <param name="elementBounds">The bounds of the element to scale to</param>
+    /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <param name="mapBounds">The total bounds of all map objects</param>
+    /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
     public static SKMatrix ForExtent(SKRect elementBounds, SKRect viewportBounds, SKRect mapBounds)
     {
         var paddedElementBounds = elementBounds;
 
         if (elementBounds != mapBounds)
         {
+            // For elements that are smaller thant he total map bounds
+            // we want to apply some padding to ensure that the entire
+            // element is visible
             paddedElementBounds = Pad(elementBounds, 20);
         }
 
@@ -19,88 +29,74 @@ public class CalculateMatrix
             viewportBounds.Height,
             paddedElementBounds.Width,
             paddedElementBounds.Height);
-
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-
-        // Apply the scaling matrix
-        var matrix = scaleMatrix;
-
-        var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
         
+        var matrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
+
+        // Calculate the _scaled_ position of the center of the element
+        var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
+
+        // Determine by how much to translate so that the center of
+        // the element is centered in the viewport
         var translateX = mappedDesiredCenter.X - viewportBounds.MidX;
         var translateY = mappedDesiredCenter.Y - viewportBounds.MidY;
 
-        var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
-
-        matrix = matrix.PostConcat(translateMatrix);
-
-        return matrix;
+        return matrix.PostConcat(SKMatrix.CreateTranslation(-translateX, -translateY));
     }
-
-    public static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
-    {
-        var scale = outerWidth / innerWidth;
-
-        // Check whether the inner bounds are taller
-        // than wide. If that's the case the scale
-        // needs to be calculated using height instead.
-        if (scale * innerHeight > outerHeight)
-        {
-            scale = outerHeight / innerHeight;
-        }
-
-        return scale;
-    }
-
-    private static SKRect Pad(SKRect bounds, int padding)
-    {
-        return new SKRect(
-            bounds.Left - padding,
-            bounds.Top - padding,
-            bounds.Right + padding,
-            bounds.Bottom + padding);
-    }
-
+    
+    /// <summary>
+    /// Calculate a matrix that attempts to ensure that all map objects will be visible in the viewport
+    /// </summary>
+    /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <param name="mapBounds">The total bounds of all map objects</param>
+    /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
     public static SKMatrix ToFitViewport(SKRect viewportBounds, SKRect mapBounds)
     {
-        var zoomLevel = CalculateScale(
+        var scale = CalculateScale(
             viewportBounds.Width,
             viewportBounds.Height,
             mapBounds.Width,
             mapBounds.Height);
 
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
-        var newBounds = scaleMatrix.MapRect(mapBounds);
+        var matrix = SKMatrix.CreateScale(scale, scale, 0, 0);
 
-        var matrix = scaleMatrix;
+        // Calculate the scaled bounds. We need this to center
+        // the map when either height or width are not the same
+        // as the viewport
+        var newBounds = matrix.MapRect(mapBounds);
 
-        var translateX = 0f;
-        var translateY = 0f;
-
-        if (newBounds.Width < viewportBounds.Width)
-        {
-            // Center horizontally
-            translateX = (viewportBounds.Width - newBounds.Width) / 2;
-        }
-
-        if (newBounds.Height < viewportBounds.Height)
-        {
-            // Center vertically
-            translateY = (viewportBounds.Height - newBounds.Height) / 2;
-        }
+        // If the scaled bounds are narrower than the viewport
+        // calculate the offset so that we horizontally center
+        // the map
+        var translateX = newBounds.Width < viewportBounds.Width
+            ?  (viewportBounds.Width - newBounds.Width) / 2
+            : 0;
+        
+        // If the scaled bounds are shorter than the viewport
+        // calculate the offset so that we vertically center
+        // the map
+        var translateY = newBounds.Height < viewportBounds.Height
+            ? (viewportBounds.Height - newBounds.Height) / 2
+            : 0f;
 
         // Handle situations where top/left isn't at the origin
         translateX += -Math.Min(newBounds.Left, 0);
         translateY += -Math.Min(newBounds.Top, 0);
 
-        var translate = SKMatrix.CreateTranslation(translateX, translateY);
-
-        matrix = matrix.PostConcat(translate);
-
-        return matrix;
+        return matrix.PostConcat(SKMatrix.CreateTranslation(translateX, translateY));
     }
-
-    public static SKMatrix ForPoint(float zoomLevel, float x, float y, bool centerOnPosition, SKRect mapBounds, SKRect viewportBounds)
+    
+    /// <summary>
+    /// Calculate a matrix that attempts to scale to the given level and centered on the given position
+    /// </summary>
+    /// <param name="zoomLevel">The desired scale</param>
+    /// <param name="x">The x coordinate to center on</param>
+    /// <param name="y">The y coordinate to center on</param>
+    /// <param name="centerOnPosition"><c>true</c> when the given position should be centered in the viewport</param>
+    /// <param name="mapBounds">The total bounds of all map objects</param>
+    /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
+    public static SKMatrix ForPoint(float zoomLevel, float x, float y, bool centerOnPosition, SKRect mapBounds,
+        SKRect viewportBounds)
     {
         var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
 
@@ -225,6 +221,21 @@ public class CalculateMatrix
         return matrix;
     }
 
+    public static float CalculateScale(float outerWidth, float outerHeight, float innerWidth, float innerHeight)
+    {
+        var scale = outerWidth / innerWidth;
+
+        // Check whether the inner bounds are taller
+        // than wide. If that's the case the scale
+        // needs to be calculated using height instead.
+        if (scale * innerHeight > outerHeight)
+        {
+            scale = outerHeight / innerHeight;
+        }
+
+        return scale;
+    }
+
     private static bool IsOutsideViewport(SKRect inner, SKRect outer)
     {
         return inner.Left < outer.Left ||
@@ -245,5 +256,14 @@ public class CalculateMatrix
             (float)Math.Round(rect.Top, MidpointRounding.AwayFromZero),
             (float)Math.Round(rect.Right, MidpointRounding.AwayFromZero),
             (float)Math.Round(rect.Bottom, MidpointRounding.AwayFromZero));
+    }
+
+    private static SKRect Pad(SKRect bounds, int padding)
+    {
+        return new SKRect(
+            bounds.Left - padding,
+            bounds.Top - padding,
+            bounds.Right + padding,
+            bounds.Bottom + padding);
     }
 }
