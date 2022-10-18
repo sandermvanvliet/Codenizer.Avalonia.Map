@@ -24,9 +24,9 @@ public class CalculateMatrix
             paddedElementBounds = Pad(elementBounds, 20);
         }
 
-        var zoomLevel = CalculateScale(paddedElementBounds, viewportBounds);
+        var scale = CalculateScale(paddedElementBounds, viewportBounds);
         
-        var matrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
+        var matrix = SKMatrix.CreateScale(scale, scale, 0, 0);
 
         // Calculate the _scaled_ position of the center of the element
         var mappedDesiredCenter = matrix.MapPoint(paddedElementBounds.MidX, paddedElementBounds.MidY);
@@ -80,17 +80,17 @@ public class CalculateMatrix
     /// <summary>
     /// Calculate a matrix that attempts to scale to the given level and centered on the given position
     /// </summary>
-    /// <param name="zoomLevel">The desired scale</param>
+    /// <param name="scale">The desired scale</param>
     /// <param name="x">The x coordinate to center on</param>
     /// <param name="y">The y coordinate to center on</param>
     /// <param name="centerOnPosition"><c>true</c> when the given position should be centered in the viewport</param>
     /// <param name="mapBounds">The total bounds of all map objects</param>
     /// <param name="viewportBounds">The bounds of the viewport</param>
     /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
-    public static SKMatrix ForPoint(float zoomLevel, float x, float y, bool centerOnPosition, SKRect mapBounds,
+    public static SKMatrix ForPoint(float scale, float x, float y, bool centerOnPosition, SKRect mapBounds,
         SKRect viewportBounds)
     {
-        var scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, 0, 0);
+        var scaleMatrix = SKMatrix.CreateScale(scale, scale, 0, 0);
         
         // Calculate the scaled bounds. We need this to center
         // the map when either height or width are not the same
@@ -101,10 +101,9 @@ public class CalculateMatrix
         {
             // Clip the lower zoom to ensure that you can't zoom out
             // further than the whole object being visible.
-            //AdjustZoomLevelToMapObjectBounds();
-            zoomLevel = CalculateScale(mapBounds, viewportBounds);
+            scale = CalculateScale(mapBounds, viewportBounds);
 
-            scaleMatrix = SKMatrix.CreateScale(zoomLevel, zoomLevel, x, y);
+            scaleMatrix = SKMatrix.CreateScale(scale, scale, x, y);
 
             // Ensure that when zooming out the bitmap never
             // appears away from the origin (top/left 0,0)
