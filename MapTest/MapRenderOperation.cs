@@ -43,7 +43,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
             _bitmap = CreateBitmapFromMapObjectsBounds();
 
-            if (!Bounds.IsEmpty && _bitmap.Width > Bounds.Width)
+            if (!_viewportBounds.IsEmpty && _bitmap.Width > _viewportBounds.Width)
             {
                 AdjustZoomLevelToBitmapBounds();
             }
@@ -67,6 +67,9 @@ public class MapRenderOperation : ICustomDrawOperation
         {
             _bounds = value;
 
+            // Bounds is an interface member of IDrawingOperation so
+            // we need to keep that. However, for the sake of clarity
+            // we will use viewport bounds instead.
             _viewportBounds = new SKRect(0, 0, (float)value.Width, (float)value.Height);
 
             InitializeBitmap();
@@ -182,7 +185,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private SKBitmap CreateBitmapFromControlBounds()
     {
-        return new SKBitmap((int)Bounds.Width, (int)Bounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
+        return new SKBitmap((int)_viewportBounds.Width, (int)_viewportBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 
     private SKBitmap CreateBitmapFromMapObjectsBounds()
@@ -190,14 +193,14 @@ public class MapRenderOperation : ICustomDrawOperation
         var width = _mapObjectsBounds.Width;
         var height = _mapObjectsBounds.Height;
 
-        if (_mapObjectsBounds.Width < Bounds.Width)
+        if (_mapObjectsBounds.Width < _viewportBounds.Width)
         {
-            width = (float)Bounds.Width;
+            width = _viewportBounds.Width;
         }
 
-        if (_mapObjectsBounds.Height < Bounds.Height)
+        if (_mapObjectsBounds.Height < _viewportBounds.Height)
         {
-            height = (float)Bounds.Height;
+            height = _viewportBounds.Height;
         }
 
         return new SKBitmap((int)width, (int)height, SKColorType.RgbaF16, SKAlphaType.Opaque);
