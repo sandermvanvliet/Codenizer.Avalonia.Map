@@ -22,6 +22,8 @@ public class MapRenderOperation : ICustomDrawOperation
     private string? _zoomElementName;
     private ZoomMode _zoomMode = ZoomMode.All;
     private SKPoint? _viewportCenterOn;
+    private float _zoomLevel = 1;
+    private SKPoint _zoomCenter;
 
     public MapRenderOperation()
     {
@@ -41,7 +43,7 @@ public class MapRenderOperation : ICustomDrawOperation
                 Math.Abs(_mapObjectsBounds.Height - originalBounds.Height) > 0.1)
             {
                 // Reset the zoom level
-                ZoomLevel = 1;
+                _zoomLevel = 1;
             }
 
             _bitmap = CreateBitmapFromMapObjectsBounds();
@@ -59,9 +61,9 @@ public class MapRenderOperation : ICustomDrawOperation
             }
         };
     }
+    
+    public event EventHandler<RenderFinishedEventArgs>? RenderFinished;
 
-    public float ZoomLevel { get; private set; } = 1;
-    public SKPoint ZoomCenter { get; private set; }
     public ObservableCollection<MapObject> MapObjects { get; set; }
 
     public Rect Bounds
@@ -100,6 +102,8 @@ public class MapRenderOperation : ICustomDrawOperation
 
             canvas.DrawBitmap(_bitmap, 0, 0);
         }
+
+        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX));
     }
 
     public void Dispose()
@@ -132,8 +136,8 @@ public class MapRenderOperation : ICustomDrawOperation
                     var elementBounds = MapObjects.Single(o => o.Name == _zoomElementName).Bounds;
                     matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
-                case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
+                case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01:
+                    matrix = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
                     break;
                 case ZoomMode.All:
                 default:
@@ -233,8 +237,8 @@ public class MapRenderOperation : ICustomDrawOperation
     public void Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
     {
         _zoomMode = ZoomMode.Point;
-        ZoomLevel = level;
-        ZoomCenter = mapPosition;
+        _zoomLevel = level;
+        _zoomCenter = mapPosition;
         _zoomElementName = null;
         _viewportCenterOn = viewportCenterOn;
     }
@@ -242,16 +246,16 @@ public class MapRenderOperation : ICustomDrawOperation
     public void ZoomAll()
     {
         _zoomMode = ZoomMode.All;
-        ZoomLevel = 1;
-        ZoomCenter = SKPoint.Empty;
+        _zoomLevel = 1;
+        _zoomCenter = SKPoint.Empty;
         _zoomElementName = null;
     }
 
     public void ZoomExtent(string elementName)
     {
         _zoomMode = ZoomMode.Extent;
-        ZoomLevel = 1;
-        ZoomCenter = SKPoint.Empty;
+        _zoomLevel = 1;
+        _zoomCenter = SKPoint.Empty;
         _zoomElementName = elementName;
     }
 
@@ -269,11 +273,4 @@ public class MapRenderOperation : ICustomDrawOperation
 
         return new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y);
     }
-}
-
-public enum ZoomMode
-{
-    All,
-    Extent,
-    Point
 }

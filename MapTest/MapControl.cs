@@ -22,7 +22,13 @@ public class MapControl : UserControl
 
         _renderOperation = new MapRenderOperation();
         _renderOperation.MapObjects.CollectionChanged += (_, _) => InvalidateVisual();
+        _renderOperation.RenderFinished += (_, args) =>
+        {
+            ZoomLevel = args.Scale;
+        };
     }
+
+    public float ZoomLevel { get; set; } = 1;
 
     // This is a pass-through because otherwise we need to hook into
     // the collection changed events and propagate all changes to 
@@ -98,7 +104,7 @@ public class MapControl : UserControl
                 ? step
                 : -step;
 
-        var newZoomLevel = (float)(_renderOperation.ZoomLevel + increment);
+        var newZoomLevel = (float)(ZoomLevel + increment);
         
         if (newZoomLevel < 0.1)
         {
