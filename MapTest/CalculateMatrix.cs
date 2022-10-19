@@ -197,7 +197,8 @@ public class CalculateMatrix
             newBounds = matrix.MapRect(mapBounds);
         }
         
-        // Recenter vertically
+        // When the height of the map is smaller than the viewport height
+        // we want to ensure that the map is centered vertically.
         if (newBounds.Height < viewportBounds.Height && Math.Abs(viewportBounds.MidY - newBounds.MidY) > 0.1)
         {
             var offset = viewportBounds.MidY - newBounds.MidY;
@@ -209,7 +210,8 @@ public class CalculateMatrix
             newBounds = matrix.MapRect(mapBounds);
         }
         
-        // Recenter horizontally
+        // When the width of the map is smaller than the viewport width
+        // we want to ensure that the map is centered horizontally.
         if (newBounds.Width < viewportBounds.Width && Math.Abs(viewportBounds.MidX - newBounds.MidX) > 0.1)
         {
             var offset = viewportBounds.MidX - newBounds.MidX;
