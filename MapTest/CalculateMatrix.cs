@@ -25,7 +25,7 @@ public class CalculateMatrix
         }
 
         var scale = CalculateScale(paddedElementBounds, viewportBounds);
-        
+
         var matrix = SKMatrix.CreateScale(scale, scale, 0, 0);
 
         // Calculate the _scaled_ position of the center of the element
@@ -38,7 +38,7 @@ public class CalculateMatrix
 
         return matrix.PostConcat(SKMatrix.CreateTranslation(-translateX, -translateY));
     }
-    
+
     /// <summary>
     /// Calculate a matrix that attempts to ensure that all map objects will be visible in the viewport
     /// </summary>
@@ -60,9 +60,9 @@ public class CalculateMatrix
         // calculate the offset so that we horizontally center
         // the map
         var translateX = newBounds.Width < viewportBounds.Width
-            ?  (viewportBounds.Width - newBounds.Width) / 2
+            ? (viewportBounds.Width - newBounds.Width) / 2
             : 0;
-        
+
         // If the scaled bounds are shorter than the viewport
         // calculate the offset so that we vertically center
         // the map
@@ -89,16 +89,16 @@ public class CalculateMatrix
     /// <param name="viewportCenterPosition"></param>
     /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
     public static SKMatrix ForPoint(
-        float scale, 
-        float x, 
-        float y, 
-        bool centerOnPosition, 
+        float scale,
+        float x,
+        float y,
+        bool centerOnPosition,
         SKRect mapBounds,
-        SKRect viewportBounds, 
+        SKRect viewportBounds,
         SKPoint viewportCenterPosition)
     {
         var scaleMatrix = SKMatrix.CreateScale(scale, scale, 0, 0);
-        
+
         // Calculate the scaled bounds. We need this to center
         // the map when either height or width are not the same
         // as the viewport
@@ -157,46 +157,38 @@ public class CalculateMatrix
             var translateY = mappedDesiredCenter.Y - viewportCenterPosition.Y;
 
             var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
-            
+
             matrix = matrix.PostConcat(translateMatrix);
-            
+
             newBounds = matrix.MapRect(mapBounds);
         }
 
         // Ensure that the edges of the map always snap to the edges of the viewport
-        if (newBounds.Right < viewportBounds.Right && newBounds.Width >= viewportBounds.Width)
+        // so that there is no white space between the edge of the map and the edge
+        // of the viewport
+        if (newBounds.Width >= viewportBounds.Width || newBounds.Height >= viewportBounds.Height)
         {
-            var offsetX = viewportBounds.Right - newBounds.Right;
+            // It works like this:
+            // let's say map bounds right is 800 and the viewport right is 1000,
+            // 1000 - 800 = 200 which means: map edge is 200px away from the right edge
+            // and that means: translate the map on the x-axis by 200px.
+            // When map right is 1100 and the viewport right is 1000 then:
+            // 1000 - 1100 = -100 which is less than 0 so the result of Max() is 0.
+            // The same applies for the left edge but then it's Min() instead of Max()
+            var offsetX = Math.Max(0, viewportBounds.Right - newBounds.Right) +
+                          Math.Min(0, viewportBounds.Left - newBounds.Left);
+            
+            var offsetY = Math.Min(0, viewportBounds.Top - newBounds.Top) +
+                          Math.Max(0, viewportBounds.Bottom - newBounds.Bottom);
 
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, 0));
+            if (offsetX != 0 || offsetY != 0)
+            {
+                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, offsetY));
 
-            newBounds = matrix.MapRect(mapBounds);
+                newBounds = matrix.MapRect(mapBounds);
+            }
         }
-        if(newBounds.Left > viewportBounds.Left && newBounds.Width >= viewportBounds.Width)
-        {
-            var offsetX = viewportBounds.Left - newBounds.Left;
 
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, 0));
-
-            newBounds = matrix.MapRect(mapBounds);
-        }
-        if (newBounds.Top > viewportBounds.Top && newBounds.Height >= viewportBounds.Height)
-        {
-            var offsetY = viewportBounds.Top - newBounds.Top;
-
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(0, offsetY));
-
-            newBounds = matrix.MapRect(mapBounds);
-        }
-        if (newBounds.Bottom < viewportBounds.Bottom && newBounds.Height >= viewportBounds.Height)
-        {
-            var offsetY = viewportBounds.Bottom - newBounds.Bottom;
-
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(0, offsetY));
-
-            newBounds = matrix.MapRect(mapBounds);
-        }
-        
         // When the height of the map is smaller than the viewport height
         // we want to ensure that the map is centered vertically.
         if (newBounds.Height < viewportBounds.Height && Math.Abs(viewportBounds.MidY - newBounds.MidY) > 0.1)
@@ -209,7 +201,7 @@ public class CalculateMatrix
 
             newBounds = matrix.MapRect(mapBounds);
         }
-        
+
         // When the width of the map is smaller than the viewport width
         // we want to ensure that the map is centered horizontally.
         if (newBounds.Width < viewportBounds.Width && Math.Abs(viewportBounds.MidX - newBounds.MidX) > 0.1)
@@ -265,7 +257,7 @@ public class CalculateMatrix
     /// <returns><c>true</c> when the input is inside the outer bounds, otherwise <c>false</c></returns>
     private static bool IsEntirelyWithin(SKRect inner, SKRect outer)
     {
-        return inner.Width < outer.Width && 
+        return inner.Width < outer.Width &&
                inner.Height < outer.Height;
     }
 
