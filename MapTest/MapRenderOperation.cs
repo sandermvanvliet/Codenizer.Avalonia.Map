@@ -62,7 +62,6 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public float ZoomLevel { get; private set; } = 1;
     public SKPoint ZoomCenter { get; private set; }
-    public bool CenterOnPosition { get; private set; }
     public ObservableCollection<MapObject> MapObjects { get; set; }
 
     public Rect Bounds
@@ -134,7 +133,7 @@ public class MapRenderOperation : ICustomDrawOperation
                     matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
                 case ZoomMode.Point when Math.Abs(ZoomLevel - 1) > 0.01:
-                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, CenterOnPosition, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
+                    matrix = CalculateMatrix.ForPoint(ZoomLevel, ZoomCenter.X, ZoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
                     break;
                 case ZoomMode.All:
                 default:
@@ -231,12 +230,11 @@ public class MapRenderOperation : ICustomDrawOperation
         return new SKRect(left, top, right, bottom);
     }
 
-    public void Zoom(float level, SKPoint mapPosition, bool centerOnPosition, SKPoint viewportCenterOn)
+    public void Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
     {
         _zoomMode = ZoomMode.Point;
         ZoomLevel = level;
         ZoomCenter = mapPosition;
-        CenterOnPosition = centerOnPosition;
         _zoomElementName = null;
         _viewportCenterOn = viewportCenterOn;
     }
@@ -246,7 +244,6 @@ public class MapRenderOperation : ICustomDrawOperation
         _zoomMode = ZoomMode.All;
         ZoomLevel = 1;
         ZoomCenter = SKPoint.Empty;
-        CenterOnPosition = false;
         _zoomElementName = null;
     }
 
@@ -255,7 +252,6 @@ public class MapRenderOperation : ICustomDrawOperation
         _zoomMode = ZoomMode.Extent;
         ZoomLevel = 1;
         ZoomCenter = SKPoint.Empty;
-        CenterOnPosition = false;
         _zoomElementName = elementName;
     }
 

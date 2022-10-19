@@ -108,7 +108,6 @@ public class MapControl : UserControl
         _renderOperation.Zoom(
             newZoomLevel,
             _renderOperation.MapViewportPositionToMapPosition(_mouseWheelZoomingCapturedPositionOnViewport!.Value),
-            true,
             new SKPoint(
                 (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.X,
                 (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.Y));
@@ -131,7 +130,7 @@ public class MapControl : UserControl
         base.OnPointerMoved(e);
     }
 
-    public void Zoom(float level, bool centerOnPosition, Avalonia.Point viewportPosition, string? elementName = null)
+    public void Zoom(float level, Avalonia.Point viewportPosition, string? elementName = null)
     {
         if (!string.IsNullOrEmpty(elementName))
         {
@@ -140,7 +139,7 @@ public class MapControl : UserControl
         else
         {
             var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
-            _renderOperation.Zoom(level, mapPosition, centerOnPosition, new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y));
+            _renderOperation.Zoom(level, mapPosition, new SKPoint((float)Bounds.Width / 2, (float)Bounds.Height / 2));
         }
 
         InvalidateVisual();

@@ -83,7 +83,6 @@ public class CalculateMatrix
     /// <param name="scale">The desired scale</param>
     /// <param name="x">The x coordinate to center on</param>
     /// <param name="y">The y coordinate to center on</param>
-    /// <param name="centerOnPosition"><c>true</c> when the given position should be centered in the viewport</param>
     /// <param name="mapBounds">The total bounds of all map objects</param>
     /// <param name="viewportBounds">The bounds of the viewport</param>
     /// <param name="viewportCenterPosition"></param>
@@ -92,7 +91,6 @@ public class CalculateMatrix
         float scale,
         float x,
         float y,
-        bool centerOnPosition,
         SKRect mapBounds,
         SKRect viewportBounds,
         SKPoint viewportCenterPosition)
@@ -141,27 +139,21 @@ public class CalculateMatrix
             var translateMatrix = SKMatrix.CreateTranslation(translateX, translateY);
 
             scaleMatrix = scaleMatrix.PostConcat(translateMatrix);
-
-            // Update new bounds
-            newBounds = scaleMatrix.MapRect(mapBounds);
         }
 
         // Apply the scaling matrix
         var matrix = scaleMatrix;
 
-        if (centerOnPosition)
-        {
-            var mappedDesiredCenter = matrix.MapPoint(x, y);
+        // Center the map on the desired point
+        var mappedDesiredCenter = matrix.MapPoint(x, y);
 
-            var translateX = mappedDesiredCenter.X - viewportCenterPosition.X;
-            var translateY = mappedDesiredCenter.Y - viewportCenterPosition.Y;
+        var translateCenterMatrix = SKMatrix.CreateTranslation(
+            -(mappedDesiredCenter.X - viewportCenterPosition.X), 
+            -(mappedDesiredCenter.Y - viewportCenterPosition.Y));
 
-            var translateMatrix = SKMatrix.CreateTranslation(-translateX, -translateY);
+        matrix = matrix.PostConcat(translateCenterMatrix);
 
-            matrix = matrix.PostConcat(translateMatrix);
-
-            newBounds = matrix.MapRect(mapBounds);
-        }
+        newBounds = matrix.MapRect(mapBounds);
 
         // Ensure that the edges of the map always snap to the edges of the viewport
         // so that there is no white space between the edge of the map and the edge

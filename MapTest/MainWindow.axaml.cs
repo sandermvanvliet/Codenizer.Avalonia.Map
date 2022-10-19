@@ -97,7 +97,7 @@ namespace MapTest
             var zoomX = float.Parse(ZoomX.Text);
             var zoomY = float.Parse(ZoomY.Text);
 
-            Map.Zoom(zoomLevel, true, new Avalonia.Point(zoomX, zoomY));
+            Map.Zoom(zoomLevel, new Avalonia.Point(zoomX, zoomY));
         }
 
         private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
