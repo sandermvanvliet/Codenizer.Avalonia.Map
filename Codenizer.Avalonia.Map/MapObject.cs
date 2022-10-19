@@ -1,6 +1,6 @@
 ﻿using SkiaSharp;
 
-namespace MapTest;
+namespace Codenizer.Avalonia.Map;
 
 public abstract class MapObject
 {

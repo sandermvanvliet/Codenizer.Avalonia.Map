@@ -1,4 +1,4 @@
-﻿namespace MapTest;
+﻿namespace Codenizer.Avalonia.Map;
 
 public enum ZoomMode
 {

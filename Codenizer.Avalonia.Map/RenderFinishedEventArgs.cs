@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MapTest;
+﻿namespace Codenizer.Avalonia.Map;
 
 public class RenderFinishedEventArgs : EventArgs
 {

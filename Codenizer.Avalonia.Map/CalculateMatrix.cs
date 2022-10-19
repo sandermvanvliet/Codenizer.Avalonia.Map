@@ -1,7 +1,6 @@
-﻿using System;
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace MapTest;
+namespace Codenizer.Avalonia.Map;
 
 public class CalculateMatrix
 {

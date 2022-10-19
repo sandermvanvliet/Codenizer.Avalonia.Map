@@ -1,9 +1,8 @@
-using System;
 using Avalonia;
 using Avalonia.Platform;
 using SkiaSharp;
 
-namespace MapTest;
+namespace Codenizer.Avalonia.Map;
 
 public class Image : MapObject
 {

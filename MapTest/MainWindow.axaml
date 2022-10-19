@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:mapTest="clr-namespace:MapTest"
+        xmlns:map="clr-namespace:Codenizer.Avalonia.Map;assembly=Codenizer.Avalonia.Map"
         mc:Ignorable="d"
         Width="1310"
         Height="1010"
@@ -70,7 +70,7 @@
                      SelectionChanged="SelectingItemsControl_OnSelectionChanged"
                      VerticalAlignment="Stretch">
 				<ListBox.ItemTemplate>
-					<DataTemplate DataType="{x:Type mapTest:MapObject}">
+					<DataTemplate DataType="{x:Type map:MapObject}">
 						<TextBlock Text="{Binding Path=Name}" />
 					</DataTemplate>
 				</ListBox.ItemTemplate>
@@ -81,7 +81,7 @@
                 BorderThickness="1"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch">
-			<mapTest:MapControl VerticalAlignment="Stretch"
+			<map:Map VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
                                 Name="Map"/>
 		</Border>

@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using SkiaSharp;
 
-namespace MapTest;
+namespace Codenizer.Avalonia.Map;
 
 public class MapRenderOperation : ICustomDrawOperation
 {
@@ -110,7 +108,7 @@ public class MapRenderOperation : ICustomDrawOperation
     {
     }
 
-    public bool HitTest(Avalonia.Point p)
+    public bool HitTest(global::Avalonia.Point p)
     {
         return false;
     }
@@ -218,10 +216,10 @@ public class MapRenderOperation : ICustomDrawOperation
 
     private static SKRect CalculateTotalBoundsForMapObjects(ObservableCollection<MapObject> mapObjects)
     {
-        var left = 0f;
-        var top = 0f;
-        var right = 0f;
-        var bottom = 0f;
+        double left = 0f;
+        double top = 0f;
+        double right = 0f;
+        double bottom = 0f;
 
         foreach (var mapObject in mapObjects)
         {
@@ -231,7 +229,7 @@ public class MapRenderOperation : ICustomDrawOperation
             bottom = Math.Max(mapObject.Bounds.Bottom, bottom);
         }
 
-        return new SKRect(left, top, right, bottom);
+        return new SKRect((float)left, (float)top, (float)right, (float)bottom);
     }
 
     public void Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
@@ -259,7 +257,7 @@ public class MapRenderOperation : ICustomDrawOperation
         _zoomElementName = elementName;
     }
 
-    public SKPoint MapViewportPositionToMapPosition(Avalonia.Point viewportPosition)
+    public SKPoint MapViewportPositionToMapPosition(global::Avalonia.Point viewportPosition)
     {
         if (_logicalMatrix != SKMatrix.Empty)
         {

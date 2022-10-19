@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Codenizer.Avalonia.Map;
 using SkiaSharp;
+using Image = Avalonia.Controls.Image;
 
 namespace MapTest
 {
@@ -80,7 +82,7 @@ namespace MapTest
 
         private void SquaresImage()
         {
-            Map.MapObjects.Add(new Image("mapImage", 0, 0, 800, 400, $"avares://MapTest/map-watopia.png"));
+            Map.MapObjects.Add(new Codenizer.Avalonia.Map.Image("mapImage", 0, 0, 800, 400, $"avares://MapTest/map-watopia.png"));
             var points = new []
             {
                 new SKPoint(100, 100),

@@ -1,21 +1,21 @@
-﻿using Avalonia;
+﻿using System.Collections.ObjectModel;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using System.Collections.ObjectModel;
 using SkiaSharp;
 
-namespace MapTest;
+namespace Codenizer.Avalonia.Map;
 
-public class MapControl : UserControl
+public class Map : UserControl
 {
     private readonly MapRenderOperation _renderOperation;
-    private Avalonia.Point? _mouseWheelZoomingCapturedPositionOnViewport;
+    private global::Avalonia.Point? _mouseWheelZoomingCapturedPositionOnViewport;
     private bool _isMouseWheelZooming;
 
-    public static readonly DirectProperty<MapControl, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<MapControl, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
+    public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
 
-    public MapControl()
+    public Map()
     {
         Background = new SolidColorBrush(Colors.Transparent);
         IsHitTestVisible = true;
@@ -136,7 +136,7 @@ public class MapControl : UserControl
         base.OnPointerMoved(e);
     }
 
-    public void Zoom(float level, Avalonia.Point viewportPosition, string? elementName = null)
+    public void Zoom(float level, global::Avalonia.Point viewportPosition, string? elementName = null)
     {
         if (!string.IsNullOrEmpty(elementName))
         {
