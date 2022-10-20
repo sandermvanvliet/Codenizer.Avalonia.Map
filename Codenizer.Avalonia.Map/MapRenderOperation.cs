@@ -80,6 +80,8 @@ public class MapRenderOperation : ICustomDrawOperation
         }
     }
 
+    public bool ShowCrossHair { get; set; } = true;
+
     public void Render(IDrawingContextImpl context)
     {
         var canvas = (context as ISkiaDrawingContextImpl)?.SkCanvas;
@@ -155,8 +157,11 @@ public class MapRenderOperation : ICustomDrawOperation
 
         canvas.Restore();
 
-        RenderCrossHair(canvas);
-        RenderAlternativeCrossHair(canvas);
+        if (ShowCrossHair)
+        {
+            RenderCrossHair(canvas);
+            RenderAlternativeCrossHair(canvas);
+        }
 
         canvas.Flush();
     }

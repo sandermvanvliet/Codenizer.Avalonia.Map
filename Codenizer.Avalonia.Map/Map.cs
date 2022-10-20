@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
 using SkiaSharp;
@@ -14,6 +15,7 @@ public class Map : UserControl
     private bool _isMouseWheelZooming;
 
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
+    public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
 
     public Map()
     {
@@ -40,6 +42,18 @@ public class Map : UserControl
     {
         get => _renderOperation.MapObjects;
         set => _renderOperation.MapObjects = value;
+    }
+
+    public bool ShowCrossHair
+    {
+        get => _renderOperation.ShowCrossHair;
+        set
+        {
+            if (value == _renderOperation.ShowCrossHair) return;
+            _renderOperation.ShowCrossHair = value;
+            RaisePropertyChanged(ShowCrossHairProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+            InvalidateVisual();
+        }
     }
 
     public override void Render(DrawingContext context)
