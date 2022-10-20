@@ -30,7 +30,7 @@ public class Map : UserControl
         };
     }
 
-    public float ZoomLevel { get; set; } = 1;
+    public float ZoomLevel { get; private set; } = 1;
 
     // This is a pass-through because otherwise we need to hook into
     // the collection changed events and propagate all changes to 
