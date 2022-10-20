@@ -80,7 +80,7 @@ public class MapRenderOperation : ICustomDrawOperation
         }
     }
 
-    public bool ShowCrossHair { get; set; } = true;
+    public bool ShowCrossHair { get; set; } = false;
 
     public void Render(IDrawingContextImpl context)
     {
