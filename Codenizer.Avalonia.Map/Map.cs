@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -17,7 +16,7 @@ public class Map : UserControl
 
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
-    private string? _previousMatchingObject;
+    public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
 
     public Map()
     {
@@ -94,9 +93,12 @@ public class Map : UserControl
     {
         var positionOnViewport = e.GetPosition(this);
         
-        var mapPosition = _renderOperation.MapViewportPositionToMapPosition(positionOnViewport);
-        
-        // TODO: Add hit test for a map object here
+        var mapObject = FindMapObjectUnderCursor(positionOnViewport);
+
+        if (mapObject != null)
+        {
+            MapObjectSelected?.Invoke(this, new MapObjectSelectedEventArgs(mapObject));
+        }
 
         e.Handled = true;
     }
@@ -157,7 +159,7 @@ public class Map : UserControl
         base.OnPointerMoved(e);
     }
 
-    private void FindMapObjectUnderCursor(global::Avalonia.Point viewportPosition)
+    private MapObject? FindMapObjectUnderCursor(global::Avalonia.Point viewportPosition)
     {
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
 
@@ -165,11 +167,7 @@ public class Map : UserControl
             .Where(mo => mo.Contains(mapPosition))
             .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
 
-        if (matchingObject != null && matchingObject.Name != _previousMatchingObject)
-        {
-            _previousMatchingObject = matchingObject.Name;
-            Debug.WriteLine($"Closest matching object: {string.Join(", ", matchingObject.Name)}");
-        }
+        return matchingObject;
     }
 
     public void Zoom(float level, global::Avalonia.Point viewportPosition, string? elementName = null)

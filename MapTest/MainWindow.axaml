@@ -86,7 +86,8 @@
                 HorizontalAlignment="Stretch">
 			<map:Map VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
-                                Name="Map"/>
+                                Name="Map"
+                                MapObjectSelected="Map_OnMapObjectSelected"/>
 		</Border>
 	</Grid>
 </Window>

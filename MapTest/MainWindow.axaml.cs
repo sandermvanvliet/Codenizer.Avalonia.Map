@@ -200,5 +200,10 @@ namespace MapTest
         {
             Map.ZoomAll();
         }
+
+        private void Map_OnMapObjectSelected(object? sender, MapObjectSelectedEventArgs e)
+        {
+            Title = $"Selected {e.MapObject.Name}";
+        }
     }
 }
