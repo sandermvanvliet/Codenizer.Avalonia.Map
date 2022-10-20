@@ -8,4 +8,9 @@ public abstract class MapObject
     public abstract SKRect Bounds { get; }
 
     public abstract void Render(SKCanvas canvas);
+
+    public virtual bool Contains(SKPoint mapPosition)
+    {
+        return Bounds.Contains(mapPosition);
+    }
 }
