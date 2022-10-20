@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="0.10.18" />
     <PackageReference Include="Avalonia.Skia" Version="0.10.18" />
-    <PackageReference Include="SkiaSharp" Version="2.88.1-preview.108" />
+    <PackageReference Include="SkiaSharp" Version="2.88.3" />
   </ItemGroup>
 
 </Project>
