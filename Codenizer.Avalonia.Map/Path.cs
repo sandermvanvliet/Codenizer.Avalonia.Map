@@ -7,13 +7,13 @@ public class Path : MapObject
     private readonly SKPath _path;
     private readonly SKPaint _paint;
 
-    public Path(string name, SKPoint[] points, string color)
+    public Path(string name, SKPoint[] points, string color, float strokeWidth = 2)
     {
         Name = name;
         _path = new SKPath();
         _path.AddPoly(points, false);
 
-        _paint = new SKPaint { Color = SKColor.Parse(color), Style = SKPaintStyle.Stroke, StrokeWidth = 2 };
+        _paint = new SKPaint { Color = SKColor.Parse(color), Style = SKPaintStyle.Stroke, StrokeWidth = strokeWidth };
     }
 
     public override string Name { get; }
