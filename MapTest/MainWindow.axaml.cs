@@ -1,8 +1,9 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Codenizer.Avalonia.Map;
 using SkiaSharp;
-using Image = Avalonia.Controls.Image;
+using Path = Codenizer.Avalonia.Map.Path;
 
 namespace MapTest
 {
@@ -82,15 +83,68 @@ namespace MapTest
 
         private void SquaresImage()
         {
-            Map.MapObjects.Add(new Codenizer.Avalonia.Map.Image("mapImage", 0, 0, 800, 400, $"avares://MapTest/map-watopia.png"));
-            var points = new []
-            {
-                new SKPoint(100, 100),
-                new SKPoint(100, 110),
-                new SKPoint(110, 110),
-                new SKPoint(110, 120)
-            };
-            Map.MapObjects.Add(new Path("path1", points, "#0000FF"));
+            Map.MapObjects.Add(new Codenizer.Avalonia.Map.Image("mapImage", 0, 0, 8192, 4096, $"avares://MapTest/map-watopia.png"));
+            
+            var worldMostLeft = new TrackPoint(-11.68401, 166.89304);
+            var worldMostRight = new TrackPoint(-11.64594, 167.00275);
+            var mapMostLeft = new Avalonia.Point(822, 3105);
+            var mapMostRight = new Avalonia.Point(6618, 1067);
+
+            var deltaLat = Math.Abs(worldMostRight.Latitude - worldMostLeft.Latitude);
+            var deltaLon = Math.Abs(worldMostRight.Longitude - worldMostLeft.Longitude);
+
+            var deltaMapX = Math.Abs(mapMostRight.X - mapMostLeft.X);
+            var deltaMapY = Math.Abs(mapMostRight.Y - mapMostLeft.Y);
+
+            var latsPerPixel = deltaLat / deltaMapX;
+            var lonsPerPixel = deltaLon / deltaMapY;
+
+            var leftOne = MapToMap(worldMostLeft, latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
+            var rightOne = MapToMap(worldMostRight, latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
+
+            var latMiddle = (Math.Abs(worldMostLeft.Latitude - worldMostRight.Latitude) / 2);
+            var lonMiddle = (Math.Abs(worldMostLeft.Longitude - worldMostRight.Longitude) / 2);
+
+            var middle = MapToMap(
+                new TrackPoint(
+                    worldMostLeft.Latitude + latMiddle, 
+                    worldMostLeft.Longitude + lonMiddle), 
+                latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
+
+            //S11.66472° E166.94862°
+            var actualMiddle = MapToMap(
+                new TrackPoint(
+                    -11.66472,
+                    166.94862), 
+                latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
+            //S11.66425° E166.94722°
+            var actualMiddle2 = MapToMap(
+                new TrackPoint(
+                    -11.66048, 
+                    166.95450), 
+                latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
+            
+            Map.MapObjects.Add(new Point("map right", rightOne.X, rightOne.Y, 10, "#000000"));
+            Map.MapObjects.Add(new Point("map left", leftOne.X, leftOne.Y, 10, "#000000"));
+            Map.MapObjects.Add(new Point("middle", middle.X, middle.Y, 10, "#000000"));
+            Map.MapObjects.Add(new Point("actual middle", actualMiddle.X, actualMiddle.Y, 10, "#FF0000"));
+            Map.MapObjects.Add(new Point("actual middle 2", actualMiddle2.X, actualMiddle2.Y, 10, "#FF0000"));
+            Map.MapObjects.Add(new Path("left to right", new [] { leftOne, middle, rightOne }, "#000000", 10));
+        }
+
+        private SKPoint MapToMap(TrackPoint point,
+            double latsPerPixel,
+            double lonsPerPixel,
+            TrackPoint worldMostLeft,
+            Avalonia.Point mapMostLeft)
+        {
+            var deltaLat = point.Latitude - worldMostLeft.Latitude;
+            var deltaLon = point.Longitude - worldMostLeft.Longitude;
+
+            var x = deltaLat / latsPerPixel;
+            var y = deltaLon / lonsPerPixel;
+
+            return new SKPoint((float)(mapMostLeft.X + x), (float)(mapMostLeft.Y - y));
         }
 
         private void Button_OnClick(object? sender, RoutedEventArgs e)
