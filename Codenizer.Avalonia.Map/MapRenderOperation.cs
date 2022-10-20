@@ -136,7 +136,7 @@ public class MapRenderOperation : ICustomDrawOperation
                     var elementBounds = MapObjects.Single(o => o.Name == _zoomElementName).Bounds;
                     matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
                     break;
-                case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01:
+                case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01 && _viewportCenterOn != null:
                     matrix = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
                     break;
                 case ZoomMode.All:
