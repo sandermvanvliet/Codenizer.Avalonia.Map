@@ -20,11 +20,14 @@ public class Map : UserControl
 
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
+    public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
+    
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
     private UpdateScope? _updateScope;
     private RenderTargetBitmap? _renderTarget;
     private ISkiaDrawingContextImpl? _skiaContext;
+    private bool _allowUserZoom = true;
 
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
 
@@ -70,6 +73,19 @@ public class Map : UserControl
             if (value == _renderOperation.ShowCrossHair) return;
             _renderOperation.ShowCrossHair = value;
             RaisePropertyChanged(ShowCrossHairProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+
+            InvalidateVisual();
+        }
+    }
+
+    public bool AllowUserZoom
+    {
+        get => _allowUserZoom;
+        set
+        {
+            if (value == _allowUserZoom) return;
+            _allowUserZoom = value;
+            RaisePropertyChanged(AllowUserZoomProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
 
             InvalidateVisual();
         }
@@ -183,6 +199,11 @@ public class Map : UserControl
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
+        if (!AllowUserZoom)
+        {
+            return;
+        }
+
         const double step = 0.1;
 
         var positionOnViewport = e.GetPosition(this);
