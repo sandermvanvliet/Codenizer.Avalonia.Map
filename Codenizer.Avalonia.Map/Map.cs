@@ -21,6 +21,7 @@ public class Map : UserControl
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
     public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
+    public static readonly DirectProperty<Map, bool> AllowUserPanProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserPan), map => map.AllowUserPan, (map, value) => map.AllowUserPan = value);
     
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
@@ -28,6 +29,7 @@ public class Map : UserControl
     private RenderTargetBitmap? _renderTarget;
     private ISkiaDrawingContextImpl? _skiaContext;
     private bool _allowUserZoom = true;
+    private bool _allowUserPan = true;
 
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
 
@@ -86,6 +88,19 @@ public class Map : UserControl
             if (value == _allowUserZoom) return;
             _allowUserZoom = value;
             RaisePropertyChanged(AllowUserZoomProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+
+            InvalidateVisual();
+        }
+    }
+
+    public bool AllowUserPan
+    {
+        get => _allowUserPan;
+        set
+        {
+            if (value == _allowUserPan) return;
+            _allowUserPan = value;
+            RaisePropertyChanged(AllowUserPanProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
 
             InvalidateVisual();
         }
