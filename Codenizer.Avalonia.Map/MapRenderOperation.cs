@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
@@ -15,6 +16,7 @@ public class MapRenderOperation : ICustomDrawOperation
     private SKBitmap _bitmap;
     private Rect _bounds;
     private SKMatrix _logicalMatrix = SKMatrix.Empty;
+    private SKMatrix _logicalMatrixInverted = SKMatrix.Empty;
     private SKRect _mapObjectsBounds = SKRect.Empty;
     private SKRect _viewportBounds = SKRect.Empty;
     private string? _zoomElementName;
@@ -22,6 +24,7 @@ public class MapRenderOperation : ICustomDrawOperation
     private SKPoint? _viewportCenterOn;
     private float _zoomLevel = 1;
     private SKPoint _zoomCenter;
+    private SKMatrix? _cachedMatrix;
 
     public MapRenderOperation()
     {
@@ -41,7 +44,7 @@ public class MapRenderOperation : ICustomDrawOperation
                 Math.Abs(_mapObjectsBounds.Height - originalBounds.Height) > 0.1)
             {
                 // Reset the zoom level
-                _zoomLevel = 1;
+                ZoomAll();
             }
 
             _bitmap = CreateBitmapFromMapObjectsBounds();
@@ -50,7 +53,7 @@ public class MapRenderOperation : ICustomDrawOperation
             {
                 // As we're re-initializing, ensure that the entire
                 // bitmap will be visible in the viewport
-                _zoomMode = ZoomMode.All;
+                ZoomAll();
             }
 
             if (!string.IsNullOrEmpty(_zoomElementName) && MapObjects.All(m => m.Name != _zoomElementName))
@@ -59,7 +62,7 @@ public class MapRenderOperation : ICustomDrawOperation
             }
         };
     }
-    
+
     public event EventHandler<RenderFinishedEventArgs>? RenderFinished;
 
     public ObservableCollection<MapObject> MapObjects { get; set; }
@@ -76,11 +79,14 @@ public class MapRenderOperation : ICustomDrawOperation
             // we will use viewport bounds instead.
             _viewportBounds = new SKRect(0, 0, (float)value.Width, (float)value.Height);
 
+            _cachedMatrix = null;
+
             InitializeBitmap();
         }
     }
 
     public bool ShowCrossHair { get; set; } = false;
+    public RenderPriority RenderPriority { get; set; } = new NoExplicitRenderPriority();
 
     public void Render(IDrawingContextImpl context)
     {
@@ -91,7 +97,7 @@ public class MapRenderOperation : ICustomDrawOperation
             return;
         }
 
-        canvas.Clear(CanvasBackgroundColor);
+        var stopwatch = Stopwatch.StartNew();
 
         if (_bitmap is { Width: > 0 })
         {
@@ -103,7 +109,9 @@ public class MapRenderOperation : ICustomDrawOperation
             canvas.DrawBitmap(_bitmap, 0, 0);
         }
 
-        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX));
+        stopwatch.Stop();
+
+        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed));
     }
 
     public void Dispose()
@@ -130,26 +138,50 @@ public class MapRenderOperation : ICustomDrawOperation
         {
             SKMatrix matrix;
 
-            switch (_zoomMode)
+            if (_cachedMatrix == null)
             {
-                case ZoomMode.Extent when !string.IsNullOrEmpty(_zoomElementName):
-                    var elementBounds = MapObjects.Single(o => o.Name == _zoomElementName).Bounds;
-                    matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
-                    break;
-                case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01 && _viewportCenterOn != null:
-                    matrix = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
-                    break;
-                case ZoomMode.All:
-                default:
-                    matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
-                    break;
+                switch (_zoomMode)
+                {
+                    case ZoomMode.Extent when !string.IsNullOrEmpty(_zoomElementName):
+                        var mapObject = MapObjects.SingleOrDefault(o => o.Name == _zoomElementName);
+                        if (mapObject == null)
+                        {
+                            // If the object doesn't exist anymore then revert to zoom all
+                            _zoomElementName = null;
+                            matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
+                        }
+                        else
+                        {
+                            var elementBounds = mapObject.Bounds;
+                            matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
+                        }
+
+                        break;
+                    case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01 && _viewportCenterOn != null:
+                        matrix = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
+                        break;
+                    case ZoomMode.All:
+                    default:
+                        matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
+                        break;
+                }
+
+                _cachedMatrix = matrix;
+            }
+            else
+            {
+                matrix = _cachedMatrix.Value;
             }
 
             canvas.SetMatrix(matrix);
 
-            _logicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+            if (_logicalMatrix != canvas.TotalMatrix)
+            {
+                _logicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+                _logicalMatrixInverted = _logicalMatrix.Invert();
+            }
 
-            foreach (var mapObject in MapObjects)
+            foreach (var mapObject in MapObjects.OrderBy(mo => mo, RenderPriority))
             {
                 mapObject.Render(canvas);
             }
@@ -177,9 +209,9 @@ public class MapRenderOperation : ICustomDrawOperation
     private void RenderAlternativeCrossHair(SKCanvas canvas)
     {
         canvas.DrawLine(_viewportBounds.MidX + 100, 0, _viewportBounds.MidX + 100, _viewportBounds.Height, _alternateCrossHairPaint);
-        canvas.DrawLine(0, _viewportBounds.MidY -100, _viewportBounds.Width, _viewportBounds.MidY - 100, _alternateCrossHairPaint);
+        canvas.DrawLine(0, _viewportBounds.MidY - 100, _viewportBounds.Width, _viewportBounds.MidY - 100, _alternateCrossHairPaint);
         canvas.DrawCircle(_viewportBounds.MidX + 100, _viewportBounds.MidY - 100, 2, _alternateCrossHairPaint);
-        canvas.DrawText($"{_viewportBounds.MidX+100}x{_viewportBounds.MidY-100}", new SKPoint(_viewportBounds.MidX+100, _viewportBounds.MidY-100), _alternateCrossHairPaint);
+        canvas.DrawText($"{_viewportBounds.MidX + 100}x{_viewportBounds.MidY - 100}", new SKPoint(_viewportBounds.MidX + 100, _viewportBounds.MidY - 100), _alternateCrossHairPaint);
     }
 
     private void InitializeBitmap()
@@ -193,7 +225,6 @@ public class MapRenderOperation : ICustomDrawOperation
         _zoomMode = ZoomMode.All;
 
         using var canvas = new SKCanvas(_bitmap);
-        canvas.Clear(CanvasBackgroundColor);
     }
 
     private SKBitmap CreateBitmapFromControlBounds()
@@ -239,6 +270,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public void Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
     {
+        _cachedMatrix = null;
         _zoomMode = ZoomMode.Point;
         _zoomLevel = level;
         _zoomCenter = mapPosition;
@@ -248,6 +280,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public void ZoomAll()
     {
+        _cachedMatrix = null;
         _zoomMode = ZoomMode.All;
         _zoomLevel = 1;
         _zoomCenter = SKPoint.Empty;
@@ -256,6 +289,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public void ZoomExtent(string elementName)
     {
+        _cachedMatrix = null;
         _zoomMode = ZoomMode.Extent;
         _zoomLevel = 1;
         _zoomCenter = SKPoint.Empty;
@@ -264,14 +298,12 @@ public class MapRenderOperation : ICustomDrawOperation
 
     public SKPoint MapViewportPositionToMapPosition(global::Avalonia.Point viewportPosition)
     {
-        if (_logicalMatrix != SKMatrix.Empty)
+        if (_logicalMatrixInverted != SKMatrix.Empty)
         {
             // Because we want to get the _original_ coordinate on the
             // map before scaling or translation has happened we need
             // the inverse matrix.
-            var inverseMatrix = _logicalMatrix.Invert();
-
-            return inverseMatrix.MapPoint(new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y));
+            return _logicalMatrixInverted.MapPoint(new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y));
         }
 
         return new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y);

@@ -1,9 +1,12 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
@@ -16,6 +19,9 @@ public class Map : UserControl
 
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
+    private bool _isUpdating = false;
+    private static readonly object SyncRoot = new();
+    private UpdateScope? _updateScope;
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
 
     public Map()
@@ -24,10 +30,17 @@ public class Map : UserControl
         IsHitTestVisible = true;
 
         _renderOperation = new MapRenderOperation();
-        _renderOperation.MapObjects.CollectionChanged += (_, _) => InvalidateVisual();
+        _renderOperation.MapObjects.CollectionChanged += (_, _) =>
+        {
+            if (!_isUpdating)
+            {
+                InvalidateVisual();
+            }
+        };
         _renderOperation.RenderFinished += (_, args) =>
         {
             ZoomLevel = args.Scale;
+            Debug.WriteLine($"Render duration: {args.RenderDuration.TotalMilliseconds}ms");
         };
     }
 
@@ -57,10 +70,51 @@ public class Map : UserControl
         }
     }
 
+    public RenderPriority RenderPriority
+    {
+        get => _renderOperation.RenderPriority;
+        set => _renderOperation.RenderPriority = value;
+    }
+
+    
+    public IDisposable? BeginUpdate([CallerMemberName]string? caller = "")
+    {
+        lock (SyncRoot)
+        {
+            if (!_isUpdating)
+            {
+                _isUpdating = true;
+
+                _updateScope = new UpdateScope(EndUpdateAndRender, caller);
+            }
+        }
+
+        return _updateScope;
+    }
+
+    private void EndUpdateAndRender()
+    {
+        lock (SyncRoot)
+        {
+            _isUpdating = false;
+        }
+
+        InvalidateVisual();
+    }
+
     public override void Render(DrawingContext context)
     {
         if (IsVisible)
         {
+            lock (SyncRoot)
+            {
+                if (_isUpdating)
+                {
+                    Debug.WriteLine("Not rendering because currently updating");
+                    return;
+                }
+            }
+            
             context.Custom(_renderOperation);
         }
     }
