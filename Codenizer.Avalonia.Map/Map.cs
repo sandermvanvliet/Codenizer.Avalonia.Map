@@ -6,7 +6,8 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Threading;
+using Avalonia.Media.Imaging;
+using Avalonia.Skia;
 using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
@@ -19,9 +20,12 @@ public class Map : UserControl
 
     public static readonly DirectProperty<Map, ObservableCollection<MapObject>> MapObjectsProperty = AvaloniaProperty.RegisterDirect<Map, ObservableCollection<MapObject>>(nameof(MapObjects), map => map.MapObjects, (map, value) => map.MapObjects = value);
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
-    private bool _isUpdating = false;
+    private bool _isUpdating;
     private static readonly object SyncRoot = new();
     private UpdateScope? _updateScope;
+    private RenderTargetBitmap? _renderTarget;
+    private ISkiaDrawingContextImpl? _skiaContext;
+
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
 
     public Map()
@@ -66,6 +70,7 @@ public class Map : UserControl
             if (value == _renderOperation.ShowCrossHair) return;
             _renderOperation.ShowCrossHair = value;
             RaisePropertyChanged(ShowCrossHairProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+
             InvalidateVisual();
         }
     }
@@ -104,18 +109,28 @@ public class Map : UserControl
 
     public override void Render(DrawingContext context)
     {
-        if (IsVisible)
+        if (_isUpdating)
         {
-            lock (SyncRoot)
-            {
-                if (_isUpdating)
-                {
-                    Debug.WriteLine("Not rendering because currently updating");
-                    return;
-                }
-            }
-            
-            context.Custom(_renderOperation);
+            return;
+        }
+
+        if (_renderTarget != null)
+        {
+            RenderMap();
+
+            context
+                .DrawImage(
+                    _renderTarget,
+                    new Rect(0, 0, _renderTarget.PixelSize.Width, _renderTarget.PixelSize.Height),
+                    new Rect(0, 0, Bounds.Width, Bounds.Height));
+        }
+    }
+
+    private void RenderMap()
+    {
+        if (_skiaContext != null)
+        {
+            _renderOperation.Render(_skiaContext);
         }
     }
 
@@ -125,6 +140,13 @@ public class Map : UserControl
         return availableSize;
     }
 
+    private void InitializeRenderTarget()
+    {
+        _renderTarget = new RenderTargetBitmap(new PixelSize((int)Bounds.Width, (int)Bounds.Height));
+        var context = _renderTarget.CreateDrawingContext(null);
+        _skiaContext = context as ISkiaDrawingContextImpl;
+    }
+    
     protected override void OnPropertyChanged<T>(AvaloniaPropertyChangedEventArgs<T> change)
     {
         if (change.Property.Name == nameof(Bounds))
@@ -136,6 +158,8 @@ public class Map : UserControl
             // For rendering we don't want that translation to happen
             // as we're drawing _inside_ of the control, not the parent.
             _renderOperation.Bounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
+
+            InitializeRenderTarget();
 
             InvalidateVisual();
         }
@@ -189,7 +213,7 @@ public class Map : UserControl
             new SKPoint(
                 (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.X,
                 (float)_mouseWheelZoomingCapturedPositionOnViewport.Value.Y));
-        
+
         InvalidateVisual();
 
         e.Handled = true;

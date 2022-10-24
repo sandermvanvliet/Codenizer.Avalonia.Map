@@ -2,18 +2,16 @@
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Platform;
-using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
-public class MapRenderOperation : ICustomDrawOperation
+public class MapRenderOperation
 {
     private static readonly SKColor CanvasBackgroundColor = SKColor.Parse("#FFFFFF");
     private readonly SKPaint _crossHairPaint;
     private readonly SKPaint _alternateCrossHairPaint;
-    private SKBitmap _bitmap;
     private Rect _bounds;
     private SKMatrix _logicalMatrix = SKMatrix.Empty;
     private SKMatrix _logicalMatrixInverted = SKMatrix.Empty;
@@ -30,10 +28,7 @@ public class MapRenderOperation : ICustomDrawOperation
     {
         _crossHairPaint = new SKPaint { Color = SKColor.Parse("#FF0000"), Style = SKPaintStyle.Fill };
         _alternateCrossHairPaint = new SKPaint { Color = SKColor.Parse("#00FF00"), Style = SKPaintStyle.Fill };
-
-        // This is to ensure we always have a bitmap to work with
-        _bitmap = CreateBitmapFromControlBounds();
-
+        
         MapObjects = new ObservableCollection<MapObject>();
         MapObjects.CollectionChanged += (_, _) =>
         {
@@ -46,16 +41,7 @@ public class MapRenderOperation : ICustomDrawOperation
                 // Reset the zoom level
                 ZoomAll();
             }
-
-            _bitmap = CreateBitmapFromMapObjectsBounds();
-
-            if (!_viewportBounds.IsEmpty && _bitmap.Width > _viewportBounds.Width)
-            {
-                // As we're re-initializing, ensure that the entire
-                // bitmap will be visible in the viewport
-                ZoomAll();
-            }
-
+            
             if (!string.IsNullOrEmpty(_zoomElementName) && MapObjects.All(m => m.Name != _zoomElementName))
             {
                 _zoomElementName = null;
@@ -80,8 +66,6 @@ public class MapRenderOperation : ICustomDrawOperation
             _viewportBounds = new SKRect(0, 0, (float)value.Width, (float)value.Height);
 
             _cachedMatrix = null;
-
-            InitializeBitmap();
         }
     }
 
@@ -99,33 +83,16 @@ public class MapRenderOperation : ICustomDrawOperation
 
         var stopwatch = Stopwatch.StartNew();
 
-        if (_bitmap is { Width: > 0 })
+        if (Bounds.Width > 0)
         {
-            using (var mapCanvas = new SKCanvas(_bitmap))
-            {
-                RenderCanvas(mapCanvas);
-            }
-
-            canvas.DrawBitmap(_bitmap, 0, 0);
+            canvas.Save();
+            RenderCanvas(canvas);
+            canvas.Restore();
         }
 
         stopwatch.Stop();
 
         RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed));
-    }
-
-    public void Dispose()
-    {
-    }
-
-    public bool HitTest(global::Avalonia.Point p)
-    {
-        return false;
-    }
-
-    public bool Equals(ICustomDrawOperation? other)
-    {
-        return false;
     }
 
     private void RenderCanvas(SKCanvas canvas)
@@ -212,42 +179,6 @@ public class MapRenderOperation : ICustomDrawOperation
         canvas.DrawLine(0, _viewportBounds.MidY - 100, _viewportBounds.Width, _viewportBounds.MidY - 100, _alternateCrossHairPaint);
         canvas.DrawCircle(_viewportBounds.MidX + 100, _viewportBounds.MidY - 100, 2, _alternateCrossHairPaint);
         canvas.DrawText($"{_viewportBounds.MidX + 100}x{_viewportBounds.MidY - 100}", new SKPoint(_viewportBounds.MidX + 100, _viewportBounds.MidY - 100), _alternateCrossHairPaint);
-    }
-
-    private void InitializeBitmap()
-    {
-        _bitmap = MapObjects.Any()
-            ? CreateBitmapFromMapObjectsBounds()
-            : CreateBitmapFromControlBounds();
-
-        // As we're re-initializing, ensure that the entire
-        // bitmap will be visible in the viewport
-        _zoomMode = ZoomMode.All;
-
-        using var canvas = new SKCanvas(_bitmap);
-    }
-
-    private SKBitmap CreateBitmapFromControlBounds()
-    {
-        return new SKBitmap((int)_viewportBounds.Width, (int)_viewportBounds.Height, SKColorType.RgbaF16, SKAlphaType.Opaque);
-    }
-
-    private SKBitmap CreateBitmapFromMapObjectsBounds()
-    {
-        var width = _mapObjectsBounds.Width;
-        var height = _mapObjectsBounds.Height;
-
-        if (_mapObjectsBounds.Width < _viewportBounds.Width)
-        {
-            width = _viewportBounds.Width;
-        }
-
-        if (_mapObjectsBounds.Height < _viewportBounds.Height)
-        {
-            height = _viewportBounds.Height;
-        }
-
-        return new SKBitmap((int)width, (int)height, SKColorType.RgbaF16, SKAlphaType.Opaque);
     }
 
     private static SKRect CalculateTotalBoundsForMapObjects(ObservableCollection<MapObject> mapObjects)
