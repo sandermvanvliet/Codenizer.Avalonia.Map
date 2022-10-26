@@ -92,7 +92,7 @@ public class MapRenderOperation
 
         stopwatch.Stop();
 
-        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed));
+        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed, _mapObjectsBounds, Bounds, MapObjects.Count));
     }
 
     private void RenderCanvas(SKCanvas canvas)
