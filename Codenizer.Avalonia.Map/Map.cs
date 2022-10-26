@@ -22,7 +22,7 @@ public class Map : UserControl
     public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
     public static readonly DirectProperty<Map, bool> AllowUserPanProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserPan), map => map.AllowUserPan, (map, value) => map.AllowUserPan = value);
     public static readonly DirectProperty<Map, bool> LogDiagnosticsProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(LogDiagnostics), map => map.LogDiagnostics, (map, value) => map.LogDiagnostics = value);
-    
+
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
     private UpdateScope? _updateScope;
@@ -51,10 +51,10 @@ public class Map : UserControl
         _renderOperation.RenderFinished += (_, args) =>
         {
             ZoomLevel = args.Scale;
-            
+
             if (LogDiagnostics)
             {
-                DiagnosticsCaptured?.Invoke(this, new MapDiagnosticsEventArgs(args.RenderDuration));
+                DiagnosticsCaptured?.Invoke(this, new MapDiagnosticsEventArgs(args.RenderDuration, args.Scale, args.MapObjectsBounds, args.ViewportBounds, args.ExtentBounds));
             }
         };
     }
@@ -130,8 +130,8 @@ public class Map : UserControl
         set => _renderOperation.RenderPriority = value;
     }
 
-    
-    public IDisposable? BeginUpdate([CallerMemberName]string? caller = "")
+
+    public IDisposable? BeginUpdate([CallerMemberName] string? caller = "")
     {
         lock (SyncRoot)
         {
@@ -195,7 +195,7 @@ public class Map : UserControl
         var context = _renderTarget.CreateDrawingContext(null);
         _skiaContext = context as ISkiaDrawingContextImpl;
     }
-    
+
     protected override void OnPropertyChanged<T>(AvaloniaPropertyChangedEventArgs<T> change)
     {
         if (change.Property.Name == nameof(Bounds))
@@ -219,7 +219,7 @@ public class Map : UserControl
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         var positionOnViewport = e.GetPosition(this);
-        
+
         var mapObject = FindMapObjectUnderCursor(positionOnViewport);
 
         if (mapObject != null)
@@ -255,7 +255,7 @@ public class Map : UserControl
                 : -step;
 
         var newZoomLevel = (float)(ZoomLevel + increment);
-        
+
         if (newZoomLevel < 0.1)
         {
             newZoomLevel = 0.1f;
@@ -302,32 +302,39 @@ public class Map : UserControl
         return matchingObject;
     }
 
-    public void Zoom(float level, global::Avalonia.Point viewportPosition, string? elementName = null)
+    public (SKRect newBounds, SKRect viewportMappedBounds) Zoom(float level, global::Avalonia.Point viewportPosition)
     {
-        if (!string.IsNullOrEmpty(elementName))
-        {
-            _renderOperation.ZoomExtent(elementName);
-        }
-        else
-        {
-            var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
-            _renderOperation.Zoom(level, mapPosition, new SKPoint((float)Bounds.Width / 2, (float)Bounds.Height / 2));
-        }
+        var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
+        var newBounds = _renderOperation.Zoom(level, mapPosition, new SKPoint((float)Bounds.Width / 2, (float)Bounds.Height / 2));
+        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
 
         InvalidateVisual();
+
+        return (newBounds, viewportMappedBounds);
     }
 
-    public void ZoomExtent(string elementName)
+    public (SKRect elementBounds, SKRect viewportMappedBounds) ZoomExtent(string elementName)
     {
-        _renderOperation.ZoomExtent(elementName);
+        var elementBounds = _renderOperation.ZoomExtent(elementName);
+        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(elementBounds));
 
         InvalidateVisual();
+
+        return (elementBounds, viewportMappedBounds);
     }
 
-    public void ZoomAll()
+    public (SKRect newBounds, SKRect viewportMappedBounds) ZoomAll()
     {
-        _renderOperation.ZoomAll();
+        var newBounds = _renderOperation.ZoomAll();
+        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
 
         InvalidateVisual();
+
+        return (newBounds, viewportMappedBounds);
+    }
+
+    public global::Avalonia.Point MapToViewport(SKPoint mapPosition)
+    {
+        return _renderOperation.MapPositionToViewport(mapPosition);
     }
 }

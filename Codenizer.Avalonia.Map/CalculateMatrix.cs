@@ -86,7 +86,7 @@ public class CalculateMatrix
     /// <param name="viewportBounds">The bounds of the viewport</param>
     /// <param name="viewportCenterPosition"></param>
     /// <returns>A <see cref="SKMatrix"/> that applies the scaling and translation</returns>
-    public static SKMatrix ForPoint(
+    public static (SKMatrix matrix, SKRect newBounds) ForPoint(
         float scale,
         float x,
         float y,
@@ -202,9 +202,11 @@ public class CalculateMatrix
             var translateMatrix = SKMatrix.CreateTranslation(offset, 0);
 
             matrix = matrix.PostConcat(translateMatrix);
+
+            newBounds = matrix.MapRect(mapBounds);
         }
 
-        return matrix;
+        return (matrix, newBounds);
     }
 
     /// <summary>
@@ -246,7 +248,7 @@ public class CalculateMatrix
     /// <param name="inner">The bounds to check</param>
     /// <param name="outer">The bounds that <paramref name="inner"/> should fall inside</param>
     /// <returns><c>true</c> when the input is inside the outer bounds, otherwise <c>false</c></returns>
-    private static bool IsEntirelyWithin(SKRect inner, SKRect outer)
+    public static bool IsEntirelyWithin(SKRect inner, SKRect outer)
     {
         return inner.Width < outer.Width &&
                inner.Height < outer.Height;
@@ -260,7 +262,7 @@ public class CalculateMatrix
     /// <para>This method is useful when working with scaled rectangles where a value approaches a whole number but not quite, for example <c>999.999999</c> instead of <c>1000</c></para></remarks>
     /// <param name="input">The <see cref="SKRect"/> to scale</param>
     /// <returns>A <see cref="SKRect"/> with all values rounded to zero decimals</returns>
-    private static SKRect Round(SKRect input)
+    internal static SKRect Round(SKRect input)
     {
         return new SKRect(
             (float)Math.Round(input.Left, MidpointRounding.AwayFromZero),

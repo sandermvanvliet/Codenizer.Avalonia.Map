@@ -23,6 +23,7 @@ public class MapRenderOperation
     private float _zoomLevel = 1;
     private SKPoint _zoomCenter;
     private SKMatrix? _cachedMatrix;
+    private SKRect? _elementBounds;
 
     public MapRenderOperation()
     {
@@ -92,7 +93,7 @@ public class MapRenderOperation
 
         stopwatch.Stop();
 
-        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed, _mapObjectsBounds, Bounds, MapObjects.Count));
+        RenderFinished?.Invoke(this, new RenderFinishedEventArgs(_logicalMatrix.ScaleX, stopwatch.Elapsed, _mapObjectsBounds, Bounds, _elementBounds, MapObjects.Count));
     }
 
     private void RenderCanvas(SKCanvas canvas)
@@ -107,32 +108,7 @@ public class MapRenderOperation
 
             if (_cachedMatrix == null)
             {
-                switch (_zoomMode)
-                {
-                    case ZoomMode.Extent when !string.IsNullOrEmpty(_zoomElementName):
-                        var mapObject = MapObjects.SingleOrDefault(o => o.Name == _zoomElementName);
-                        if (mapObject == null)
-                        {
-                            // If the object doesn't exist anymore then revert to zoom all
-                            _zoomElementName = null;
-                            matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
-                        }
-                        else
-                        {
-                            var elementBounds = mapObject.Bounds;
-                            matrix = CalculateMatrix.ForExtent(elementBounds, _viewportBounds, _mapObjectsBounds);
-                        }
-
-                        break;
-                    case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01 && _viewportCenterOn != null:
-                        matrix = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds, _viewportBounds, _viewportCenterOn.Value);
-                        break;
-                    case ZoomMode.All:
-                    default:
-                        matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
-                        break;
-                }
-
+                (matrix, _) = CalculateMatrixForZoomMode();
                 _cachedMatrix = matrix;
             }
             else
@@ -163,6 +139,43 @@ public class MapRenderOperation
         }
 
         canvas.Flush();
+    }
+
+    private (SKMatrix matrix, SKRect newBounds) CalculateMatrixForZoomMode()
+    {
+        SKMatrix matrix;
+        SKRect newBounds;
+
+        switch (_zoomMode)
+        {
+            case ZoomMode.Extent when !string.IsNullOrEmpty(_zoomElementName):
+                var mapObject = MapObjects.SingleOrDefault(o => o.Name == _zoomElementName);
+                if (mapObject == null)
+                {
+                    // If the object doesn't exist anymore then revert to zoom all
+                    _zoomElementName = null;
+                    matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
+                    newBounds = _mapObjectsBounds;
+                }
+                else
+                {
+                    newBounds = CalculateMatrix.Round(mapObject.Bounds);
+                    matrix = CalculateMatrix.ForExtent(newBounds, _viewportBounds, _mapObjectsBounds);
+                }
+
+                break;
+            case ZoomMode.Point when Math.Abs(_zoomLevel - 1) > 0.01 && _viewportCenterOn != null:
+                (matrix, newBounds) = CalculateMatrix.ForPoint(_zoomLevel, _zoomCenter.X, _zoomCenter.Y, _mapObjectsBounds,
+                    _viewportBounds, _viewportCenterOn.Value);
+                break;
+            case ZoomMode.All:
+            default:
+                matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
+                newBounds = _mapObjectsBounds;
+                break;
+        }
+        
+        return (matrix, newBounds);
     }
 
     private void RenderCrossHair(SKCanvas canvas)
@@ -199,32 +212,44 @@ public class MapRenderOperation
         return new SKRect((float)left, (float)top, (float)right, (float)bottom);
     }
 
-    public void Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
+    public SKRect Zoom(float level, SKPoint mapPosition, SKPoint viewportCenterOn)
     {
-        _cachedMatrix = null;
         _zoomMode = ZoomMode.Point;
         _zoomLevel = level;
         _zoomCenter = mapPosition;
         _zoomElementName = null;
         _viewportCenterOn = viewportCenterOn;
+        _elementBounds = null;
+
+        (_cachedMatrix, var newBounds) = CalculateMatrixForZoomMode();
+
+        return newBounds;
     }
 
-    public void ZoomAll()
+    public SKRect ZoomAll()
     {
-        _cachedMatrix = null;
         _zoomMode = ZoomMode.All;
         _zoomLevel = 1;
         _zoomCenter = SKPoint.Empty;
         _zoomElementName = null;
+        _elementBounds = null;
+
+        (_cachedMatrix, var newBounds) = CalculateMatrixForZoomMode();
+
+        return newBounds;
     }
 
-    public void ZoomExtent(string elementName)
+    public SKRect ZoomExtent(string elementName)
     {
-        _cachedMatrix = null;
         _zoomMode = ZoomMode.Extent;
         _zoomLevel = 1;
         _zoomCenter = SKPoint.Empty;
         _zoomElementName = elementName;
+        _elementBounds = null;
+
+        (_cachedMatrix, _elementBounds) = CalculateMatrixForZoomMode();
+
+        return _elementBounds.Value;
     }
 
     public SKPoint MapViewportPositionToMapPosition(global::Avalonia.Point viewportPosition)
@@ -238,5 +263,17 @@ public class MapRenderOperation
         }
 
         return new SKPoint((float)viewportPosition.X, (float)viewportPosition.Y);
+    }
+
+    public global::Avalonia.Point MapPositionToViewport(SKPoint mapPosition)
+    {
+        var mapped = _logicalMatrix.MapPoint(mapPosition);
+
+        return new global::Avalonia.Point(mapped.X, mapped.Y);
+    }
+
+    public SKRect MapBoundsToViewport(SKRect elementBounds)
+    {
+        return _logicalMatrix.MapRect(elementBounds);
     }
 }
