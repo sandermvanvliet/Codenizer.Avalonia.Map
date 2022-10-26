@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -22,6 +21,7 @@ public class Map : UserControl
     public static readonly DirectProperty<Map, bool> ShowCrossHairProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(ShowCrossHair), map => map.ShowCrossHair, (map, value) => map.ShowCrossHair = value);
     public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
     public static readonly DirectProperty<Map, bool> AllowUserPanProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserPan), map => map.AllowUserPan, (map, value) => map.AllowUserPan = value);
+    public static readonly DirectProperty<Map, bool> LogDiagnosticsProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(LogDiagnostics), map => map.LogDiagnostics, (map, value) => map.LogDiagnostics = value);
     
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
@@ -30,8 +30,10 @@ public class Map : UserControl
     private ISkiaDrawingContextImpl? _skiaContext;
     private bool _allowUserZoom = true;
     private bool _allowUserPan = true;
+    private bool _logDiagnostics;
 
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
+    public event EventHandler<MapDiagnosticsEventArgs>? DiagnosticsCaptured;
 
     public Map()
     {
@@ -49,7 +51,11 @@ public class Map : UserControl
         _renderOperation.RenderFinished += (_, args) =>
         {
             ZoomLevel = args.Scale;
-            Debug.WriteLine($"Render duration: {args.RenderDuration.TotalMilliseconds}ms");
+            
+            if (LogDiagnostics)
+            {
+                DiagnosticsCaptured?.Invoke(this, new MapDiagnosticsEventArgs(args.RenderDuration));
+            }
         };
     }
 
@@ -103,6 +109,18 @@ public class Map : UserControl
             RaisePropertyChanged(AllowUserPanProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
 
             InvalidateVisual();
+        }
+    }
+
+    public bool LogDiagnostics
+    {
+        get => _logDiagnostics;
+        set
+        {
+            if (value == _logDiagnostics) return;
+            _logDiagnostics = value;
+            RaisePropertyChanged(LogDiagnosticsProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+
         }
     }
 
