@@ -302,35 +302,35 @@ public class Map : UserControl
         return matchingObject;
     }
 
-    public (SKRect newBounds, SKRect viewportMappedBounds) Zoom(float level, global::Avalonia.Point viewportPosition)
+    public (SKRect newBounds, SKRect newBoundsMappedToViewport) Zoom(float level, global::Avalonia.Point viewportPosition)
     {
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
         var newBounds = _renderOperation.Zoom(level, mapPosition, new SKPoint((float)Bounds.Width / 2, (float)Bounds.Height / 2));
-        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
+        var newBoundsMappedToViewport = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
 
         InvalidateVisual();
 
-        return (newBounds, viewportMappedBounds);
+        return (newBounds, newBoundsMappedToViewport);
     }
 
-    public (SKRect elementBounds, SKRect viewportMappedBounds) ZoomExtent(string elementName)
+    public (SKRect elementBounds, SKRect newBoundsMappedToViewport) ZoomExtent(string elementName)
     {
         var elementBounds = _renderOperation.ZoomExtent(elementName);
-        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(elementBounds));
+        var newBoundsMappedToViewport = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(elementBounds));
 
         InvalidateVisual();
 
-        return (elementBounds, viewportMappedBounds);
+        return (elementBounds, newBoundsMappedToViewport);
     }
 
-    public (SKRect newBounds, SKRect viewportMappedBounds) ZoomAll()
+    public (SKRect newBounds, SKRect newBoundsMappedToViewport) ZoomAll()
     {
         var newBounds = _renderOperation.ZoomAll();
-        var viewportMappedBounds = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
+        var newBoundsMappedToViewport = CalculateMatrix.Round(_renderOperation.MapBoundsToViewport(newBounds));
 
         InvalidateVisual();
 
-        return (newBounds, viewportMappedBounds);
+        return (newBounds, newBoundsMappedToViewport);
     }
 
     public global::Avalonia.Point MapToViewport(SKPoint mapPosition)
