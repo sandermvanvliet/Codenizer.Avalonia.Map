@@ -332,8 +332,12 @@ public class Map : UserControl
         // track the delta-x and delta-y values
         // based on the start position of the
         // drag operation
-        var panX = (float)Math.Round(_previousViewportPanPosition.Value.X - viewportPosition.X, MidpointRounding.AwayFromZero);
-        var panY = (float)Math.Round(_previousViewportPanPosition.Value.Y - viewportPosition.Y, MidpointRounding.AwayFromZero);
+
+        var previousOnMap = _renderOperation.MapViewportPositionToMapPosition(_previousViewportPanPosition.Value);
+        var currentOnMap = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
+
+        var panX = (float)Math.Round(previousOnMap.X - currentOnMap.X, MidpointRounding.AwayFromZero);
+        var panY = (float)Math.Round(previousOnMap.Y - currentOnMap.Y, MidpointRounding.AwayFromZero);
 
         _renderOperation.Pan(panX, panY);
         _previousViewportPanPosition = viewportPosition;
