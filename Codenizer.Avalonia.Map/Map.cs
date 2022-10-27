@@ -31,6 +31,8 @@ public class Map : UserControl
     private bool _allowUserZoom = true;
     private bool _allowUserPan = true;
     private bool _logDiagnostics;
+    private bool _isPanning;
+    private global::Avalonia.Point? _previousViewportPanPosition;
 
     public event EventHandler<MapObjectSelectedEventArgs>? MapObjectSelected;
     public event EventHandler<MapDiagnosticsEventArgs>? DiagnosticsCaptured;
@@ -275,6 +277,8 @@ public class Map : UserControl
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
+        // End mouse wheel zoom when the pointer is moved
+        // to prevent the zoom going all over the place
         if (_isMouseWheelZooming)
         {
             _isMouseWheelZooming = false;
@@ -283,12 +287,56 @@ public class Map : UserControl
             return;
         }
 
-        // Check to see what's underneath the cursor
-        var viewportPosition = e.GetPosition(this);
+        if (AllowUserPan)
+        {
+            // Check to see what's underneath the cursor
+            var currentPoint = e.GetCurrentPoint(this);
+            var viewportPosition = currentPoint.Position;
 
-        FindMapObjectUnderCursor(viewportPosition);
+            // Begin panning operation
+            if (!currentPoint.Properties.IsLeftButtonPressed)
+            {
+                _isPanning = false;
+                _previousViewportPanPosition = null;
+                e.Handled = true;
+                return;
+            }
+
+            if (!_isPanning && _previousViewportPanPosition == null)
+            {
+                _isPanning = true;
+                _previousViewportPanPosition = viewportPosition;
+            }
+            else if (_isPanning)
+            {
+                Pan(viewportPosition);
+
+                InvalidateVisual();
+
+                e.Handled = true;
+                return;
+            }
+        }
 
         base.OnPointerMoved(e);
+    }
+
+    private void Pan(global::Avalonia.Point viewportPosition)
+    {
+        if (_previousViewportPanPosition == null)
+        {
+            return;
+        }
+        
+        // When a drag operation is active,
+        // track the delta-x and delta-y values
+        // based on the start position of the
+        // drag operation
+        var panX = (float)Math.Round(_previousViewportPanPosition.Value.X - viewportPosition.X, MidpointRounding.AwayFromZero);
+        var panY = (float)Math.Round(_previousViewportPanPosition.Value.Y - viewportPosition.Y, MidpointRounding.AwayFromZero);
+
+        _renderOperation.Pan(panX, panY);
+        _previousViewportPanPosition = viewportPosition;
     }
 
     private MapObject? FindMapObjectUnderCursor(global::Avalonia.Point viewportPosition)

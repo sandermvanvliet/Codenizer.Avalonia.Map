@@ -285,4 +285,52 @@ public class CalculateMatrix
             input.Right + padding,
             input.Bottom + padding);
     }
+
+    /// <summary>
+    /// Applies panning to the current matrix
+    /// </summary>
+    /// <remarks>
+    /// When the current matrix already has a translation to ensure that the map objects are visible in the viewport or it is snapped to edges then panning in the edge direction will not have any effect
+    /// </remarks>
+    /// <param name="input">The current matrix that holds the scale and translation calculated for the current <see cref="ZoomMode"/></param>
+    /// <param name="panX">Pan offset on the x-axis</param>
+    /// <param name="panY">Pan offset on the y-axis</param>
+    /// <param name="viewportBounds">The bounds of the viewport</param>
+    /// <param name="mapBounds">The total bounds of all map objects</param>
+    /// <returns>A new matrix</returns>
+    public static SKMatrix ForPan(SKMatrix input, float panX, float panY, SKRect viewportBounds, SKRect mapBounds)
+    {
+        var scaledPanX =  input.ScaleX * panX;
+        var scaledPanY = input.ScaleY * panY;
+
+        var matrix = input.PostConcat(SKMatrix.CreateTranslation(-scaledPanX, -scaledPanY));
+
+        var newBounds = matrix.MapRect(mapBounds);
+
+        // Ensure that the edges of the map always snap to the edges of the viewport
+        // so that there is no white space between the edge of the map and the edge
+        // of the viewport
+        if (newBounds.Width >= viewportBounds.Width || newBounds.Height >= viewportBounds.Height)
+        {
+            // It works like this:
+            // let's say map bounds right is 800 and the viewport right is 1000,
+            // 1000 - 800 = 200 which means: map edge is 200px away from the right edge
+            // and that means: translate the map on the x-axis by 200px.
+            // When map right is 1100 and the viewport right is 1000 then:
+            // 1000 - 1100 = -100 which is less than 0 so the result of Max() is 0.
+            // The same applies for the left edge but then it's Min() instead of Max()
+            var offsetX = Math.Max(0, viewportBounds.Right - newBounds.Right) +
+                          Math.Min(0, viewportBounds.Left - newBounds.Left);
+            
+            var offsetY = Math.Min(0, viewportBounds.Top - newBounds.Top) +
+                          Math.Max(0, viewportBounds.Bottom - newBounds.Bottom);
+
+            if (offsetX != 0 || offsetY != 0)
+            {
+                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(offsetX, offsetY));
+            }
+        }
+
+        return matrix;
+    }
 }

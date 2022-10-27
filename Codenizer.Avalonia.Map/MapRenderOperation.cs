@@ -276,4 +276,11 @@ public class MapRenderOperation
     {
         return _logicalMatrix.MapRect(elementBounds);
     }
+
+    public void Pan(float panX, float panY)
+    {
+        // Setting the cached matrix ensures that it
+        // will be used on the next render operation.
+        _cachedMatrix = CalculateMatrix.ForPan(_logicalMatrix, panX, panY, _viewportBounds, _mapObjectsBounds);
+    }
 }
