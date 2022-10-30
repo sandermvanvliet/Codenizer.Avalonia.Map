@@ -21,7 +21,10 @@ public class Image : MapObject
 
     public override string Name { get; }
     public override SKRect Bounds { get; }
-    public override void Render(SKCanvas canvas)
+    public override bool IsSelectable { get; set; } = false;
+    public override bool IsVisible { get; set; } = true;
+
+    protected override void RenderCore(SKCanvas canvas)
     {
         canvas.DrawImage(_image, Bounds);
     }

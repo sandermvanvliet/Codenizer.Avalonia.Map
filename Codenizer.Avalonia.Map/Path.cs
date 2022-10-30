@@ -18,7 +18,10 @@ public class Path : MapObject
 
     public override string Name { get; }
     public override SKRect Bounds => _path.Bounds;
-    public override void Render(SKCanvas canvas)
+    public override bool IsSelectable { get; set; } = true;
+    public override bool IsVisible { get; set; } = true;
+
+    protected override void RenderCore(SKCanvas canvas)
     {
         canvas.DrawPath(_path, _paint);
     }

@@ -15,8 +15,10 @@ public class Square : MapObject
 
     public override string Name { get; }
     public override SKRect Bounds { get; }
+    public override bool IsSelectable { get; set; } = true;
+    public override bool IsVisible { get; set; } = true;
 
-    public override void Render(SKCanvas canvas)
+    protected override void RenderCore(SKCanvas canvas)
     {
         canvas.DrawRect(Bounds, _paint);
     }

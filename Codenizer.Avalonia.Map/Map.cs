@@ -222,7 +222,7 @@ public class Map : UserControl
     {
         var positionOnViewport = e.GetPosition(this);
 
-        var mapObject = FindMapObjectUnderCursor(positionOnViewport);
+        var mapObject = FindMapObjectUnderCursor(positionOnViewport, true);
 
         if (mapObject != null)
         {
@@ -343,13 +343,15 @@ public class Map : UserControl
         _previousViewportPanPosition = viewportPosition;
     }
 
-    private MapObject? FindMapObjectUnderCursor(global::Avalonia.Point viewportPosition)
+    private MapObject? FindMapObjectUnderCursor(global::Avalonia.Point viewportPosition, bool forSelection)
     {
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
 
         var matchingObject = MapObjects
+            .Where(mo => (forSelection && mo.IsSelectable) || !forSelection)
             .Where(mo => mo.Contains(mapPosition))
-            .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
+            .OrderBy(mo => mo.Bounds.Width * mo.Bounds.Height)
+            .MinBy(mo => mo.DistanceTo(mapPosition), new VectorComparer());
 
         return matchingObject;
     }
