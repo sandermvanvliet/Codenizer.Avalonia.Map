@@ -300,10 +300,10 @@ public class CalculateMatrix
     /// <returns>A new matrix</returns>
     public static SKMatrix ForPan(SKMatrix input, float panX, float panY, SKRect viewportBounds, SKRect mapBounds)
     {
-        var scaledPanX =  input.ScaleX * panX;
-        var scaledPanY = input.ScaleY * panY;
+        var scaledPanX = panX * 2;
+        var scaledPanY = panY * 2;
 
-        var matrix = input.PostConcat(SKMatrix.CreateTranslation(-scaledPanX, -scaledPanY));
+        var matrix = SKMatrix.CreateTranslation(-scaledPanX, -scaledPanY).PostConcat(input);
 
         var newBounds = matrix.MapRect(mapBounds);
 
