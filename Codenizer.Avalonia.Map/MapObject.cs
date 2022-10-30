@@ -1,5 +1,4 @@
-﻿using Avalonia;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
@@ -23,14 +22,5 @@ public abstract class MapObject
     public virtual bool Contains(SKPoint mapPosition)
     {
         return Bounds.Contains(mapPosition);
-    }
-
-    public virtual Vector DistanceTo(SKPoint mapPosition)
-    {
-        var centerBounds = new SKPoint(Bounds.MidX, Bounds.MidY);
-
-        return new Vector(
-            Math.Abs(centerBounds.X - mapPosition.X),
-            Math.Abs(centerBounds.Y - mapPosition.Y));
     }
 }

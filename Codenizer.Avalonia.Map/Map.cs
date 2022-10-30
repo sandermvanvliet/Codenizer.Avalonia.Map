@@ -350,8 +350,7 @@ public class Map : UserControl
         var matchingObject = MapObjects
             .Where(mo => (forSelection && mo.IsSelectable) || !forSelection)
             .Where(mo => mo.Contains(mapPosition))
-            .OrderBy(mo => mo.Bounds.Width * mo.Bounds.Height)
-            .MinBy(mo => mo.DistanceTo(mapPosition), new VectorComparer());
+            .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
 
         return matchingObject;
     }
