@@ -28,7 +28,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore -c Release .\Codenizer.Avalonia.Map.sln
+      run: dotnet build --no-restore -c Release ./Codenizer.Avalonia.Map.sln
     - name: Test
       run: dotnet test --no-build --verbosity normal -c Release
     - name: Create NuGet package for Codenizer.Avalonia.Map
