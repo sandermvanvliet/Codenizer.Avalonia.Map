@@ -160,7 +160,15 @@ public class MapRenderOperation
                 else
                 {
                     newBounds = CalculateMatrix.Round(mapObject.Bounds);
-                    matrix = CalculateMatrix.ForExtent(newBounds, _viewportBounds, _mapObjectsBounds);
+                    if (newBounds == SKRect.Empty)
+                    {
+                        matrix = CalculateMatrix.ToFitViewport(_viewportBounds, _mapObjectsBounds);
+                        newBounds = _mapObjectsBounds;
+                    }
+                    else
+                    {
+                        matrix = CalculateMatrix.ForExtent(newBounds, _viewportBounds, _mapObjectsBounds);
+                    }
                 }
 
                 break;
