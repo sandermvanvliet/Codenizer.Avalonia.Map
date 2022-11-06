@@ -15,7 +15,7 @@
     <Description>An Avalonia UI control to build zoomable and pannable maps using logical objects</Description>
     <Copyright Condition="'$(Copyright)' == ''">2022 Sander van Vliet</Copyright>
     <Authors Condition="'$(Authors)' == ''">Sander van Vliet</Authors>
-    <PackageProjectUrl>https://github.com/sandermvanvliet/Codenizer.Avalonia.Map/README.md</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/sandermvanvliet/Codenizer.Avalonia.Map</PackageProjectUrl>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/sandermvanvliet/Codenizer.Avalonia.Map/</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
