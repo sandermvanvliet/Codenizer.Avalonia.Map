@@ -1,3 +1,7 @@
+// Copyright (c) 2022 Sander van Vliet
+// Licensed under GNU General Public License v3.0
+// See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
+
 using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -116,13 +120,13 @@ namespace MapTest
                     worldMostLeft.Longitude + lonMiddle), 
                 latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
 
-            //S11.66472° E166.94862°
+            //S11.66472ï¿½ E166.94862ï¿½
             var actualMiddle = MapToMap(
                 new TrackPoint(
                     -11.66472,
                     166.94862), 
                 latsPerPixel, lonsPerPixel, worldMostLeft, mapMostLeft);
-            //S11.66425° E166.94722°
+            //S11.66425ï¿½ E166.94722ï¿½
             var actualMiddle2 = MapToMap(
                 new TrackPoint(
                     -11.66048, 
@@ -212,3 +216,4 @@ namespace MapTest
         }
     }
 }
+
