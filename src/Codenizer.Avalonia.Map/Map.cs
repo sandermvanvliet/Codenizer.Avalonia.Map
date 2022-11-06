@@ -222,8 +222,14 @@ public class Map : UserControl
         base.OnPropertyChanged(change);
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
+        if (_isPanning)
+        {
+            e.Handled = true;
+            return;
+        }
+
         var positionOnViewport = e.GetPosition(this);
 
         var mapObject = FindMapObjectUnderCursor(positionOnViewport, true);
