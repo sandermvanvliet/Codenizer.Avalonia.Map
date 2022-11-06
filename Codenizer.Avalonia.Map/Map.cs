@@ -347,9 +347,18 @@ public class Map : UserControl
     {
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
 
-        var matchingObject = MapObjects
+        var matchingObjects = MapObjects
             .Where(mo => (forSelection && mo.IsSelectable) || !forSelection)
             .Where(mo => mo.Contains(mapPosition))
+            .ToList();
+
+        if (matchingObjects.Count == 1)
+        {
+            return matchingObjects.Single();
+        }
+
+        var matchingObject = matchingObjects
+            .Where(mo => mo.TightContains(mapPosition))
             .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
 
         return matchingObject;

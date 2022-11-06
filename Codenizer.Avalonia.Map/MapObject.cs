@@ -23,4 +23,9 @@ public abstract class MapObject
     {
         return Bounds.Contains(mapPosition);
     }
+
+    public virtual bool TightContains(SKPoint mapPosition)
+    {
+        return Contains(mapPosition);
+    }
 }
