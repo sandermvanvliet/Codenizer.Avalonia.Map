@@ -54,6 +54,8 @@ The control supports zooming and panning. These are controlled mainly through me
 
 Additionally, mouse-wheel zoom is supported directly by the control. Panning is handled through a drag action on the control.
 
+The control provides a `MapObjectSelected` event which will fire after clicking on a _selectable_ (see below) object. It will only fire if an object was under the cursor.
+
 ## Adding objects to the control
 
 The control supports these object types out of the box:
