@@ -1,8 +1,9 @@
-// Copyright (c) 2022 Sander van Vliet
+// Copyright (c) 2023 Sander van Vliet
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -15,7 +16,7 @@ using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
-public class Map : UserControl
+public class Map : Control
 {
     private readonly MapRenderOperation _renderOperation;
     private global::Avalonia.Point? _mouseWheelZoomingCapturedPositionOnViewport;
@@ -43,7 +44,7 @@ public class Map : UserControl
 
     public Map()
     {
-        Background = new SolidColorBrush(Colors.Transparent);
+        //Background = new SolidColorBrush(Colors.Transparent);
         IsHitTestVisible = true;
 
         _renderOperation = new MapRenderOperation();
@@ -188,11 +189,23 @@ public class Map : UserControl
             _renderOperation.Render(_skiaContext);
         }
     }
-
+    
     protected override Size MeasureOverride(Size availableSize)
     {
+        var desiredSize = new Size(availableSize.Width, availableSize.Height);
+
+        if (desiredSize.Width == Double.PositiveInfinity)
+        {
+            desiredSize = new Size(Parent.Width, desiredSize.Height);
+        }
+
+        if (desiredSize.Height == Double.PositiveInfinity)
+        {
+            desiredSize = new Size(desiredSize.Width, Parent.Height);
+        }
+
         // Take all the space we can get
-        return availableSize;
+        return desiredSize;
     }
 
     private void InitializeRenderTarget()
@@ -357,10 +370,18 @@ public class Map : UserControl
     {
         var mapPosition = _renderOperation.MapViewportPositionToMapPosition(viewportPosition);
 
-        var matchingObjects = MapObjects
+        var selectableObjects = MapObjects
             .Where(mo => (forSelection && mo.IsSelectable) || !forSelection)
+            .ToList();
+
+        var matchingObjects = selectableObjects
             .Where(mo => mo.Contains(mapPosition))
             .ToList();
+
+        if (matchingObjects.Count == 0)
+        {
+            return null;
+        }
 
         if (matchingObjects.Count == 1)
         {

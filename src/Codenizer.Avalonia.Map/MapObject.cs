@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Sander van Vliet
+// Copyright (c) 2023 Sander van Vliet
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
@@ -25,7 +25,10 @@ public abstract class MapObject
 
     public virtual bool Contains(SKPoint mapPosition)
     {
-        return Bounds.Contains(mapPosition);
+        return mapPosition.X >= Bounds.Left &&
+               mapPosition.X <= Bounds.Right &&
+               mapPosition.Y >= Bounds.Top &&
+               mapPosition.Y <= Bounds.Bottom;
     }
 
     public virtual bool TightContains(SKPoint mapPosition)
@@ -33,4 +36,3 @@ public abstract class MapObject
         return Contains(mapPosition);
     }
 }
-
