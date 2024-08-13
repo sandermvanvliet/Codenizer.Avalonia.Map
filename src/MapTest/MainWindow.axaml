@@ -7,8 +7,7 @@
         Width="1310"
         Height="1010"
         x:Class="MapTest.MainWindow"
-        Title="MapTest"
-        Activated="WindowBase_OnActivated">
+        Title="MapTest">
 	<Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="200" />

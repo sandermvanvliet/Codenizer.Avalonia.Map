@@ -222,11 +222,6 @@ namespace MapTest
         {
             Title = $"Selected {e.MapObject.Name}";
         }
-
-        private void WindowBase_OnActivated(object? sender, EventArgs e)
-        {
-            Squares1000();
-        }
     }
 }
 
