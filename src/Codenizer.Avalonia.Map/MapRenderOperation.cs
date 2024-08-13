@@ -133,7 +133,7 @@ public class MapRenderOperation : ICustomDrawOperation
 
             if (_logicalMatrix != canvas.TotalMatrix)
             {
-                _logicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+                _logicalMatrix = new SKMatrix(matrix.Values); // Copy it, don't reference it
                 _logicalMatrixInverted = _logicalMatrix.Invert();
             }
             
@@ -150,8 +150,6 @@ public class MapRenderOperation : ICustomDrawOperation
             RenderCrossHair(canvas);
             RenderAlternativeCrossHair(canvas);
         }
-
-        canvas.Flush();
     }
 
     private (SKMatrix matrix, SKRect newBounds) CalculateMatrixForZoomMode()
@@ -196,7 +194,6 @@ public class MapRenderOperation : ICustomDrawOperation
                 break;
         }
         
-        Debug.WriteLine($"New matrix: {matrix.TransX} {matrix.TransY} {matrix.ScaleX} {matrix.ScaleY}\nNew object bounds: {newBounds}");
         return (matrix, newBounds);
     }
 

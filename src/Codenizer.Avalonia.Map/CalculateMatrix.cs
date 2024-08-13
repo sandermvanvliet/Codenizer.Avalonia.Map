@@ -6,7 +6,7 @@ using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
-public class CalculateMatrix
+public static class CalculateMatrix
 {
     /// <summary>
     /// Calculate a matrix that attempts to maximize the element bounds within the viewport
@@ -217,7 +217,7 @@ public class CalculateMatrix
     /// Calculate a scale that will ensure that the inner bounds fit exactly to the outer bounds
     /// </summary>
     /// <remarks>When the inner bounds are taller than wide, the ratio is recalculated based on height thus ensuring the inner bounds will always fit</remarks>
-    public static float CalculateScale(SKRect inner, SKRect outer)
+    private static float CalculateScale(SKRect inner, SKRect outer)
     {
         var scale = outer.Width / inner.Width;
 
@@ -229,7 +229,7 @@ public class CalculateMatrix
             scale = outer.Height / inner.Height;
         }
 
-        return scale;
+        return (float)Math.Round(scale, 1);
     }
 
     /// <summary>
@@ -252,7 +252,7 @@ public class CalculateMatrix
     /// <param name="inner">The bounds to check</param>
     /// <param name="outer">The bounds that <paramref name="inner"/> should fall inside</param>
     /// <returns><c>true</c> when the input is inside the outer bounds, otherwise <c>false</c></returns>
-    public static bool IsEntirelyWithin(SKRect inner, SKRect outer)
+    private static bool IsEntirelyWithin(SKRect inner, SKRect outer)
     {
         return inner.Width < outer.Width &&
                inner.Height < outer.Height;
@@ -304,8 +304,8 @@ public class CalculateMatrix
     /// <returns>A new matrix</returns>
     public static SKMatrix ForPan(SKMatrix input, float panX, float panY, SKRect viewportBounds, SKRect mapBounds)
     {
-        var scaledPanX = panX * 2;
-        var scaledPanY = panY * 2;
+        var scaledPanX = (float)Math.Round(panX * input.ScaleX, MidpointRounding.AwayFromZero);
+        var scaledPanY = (float)Math.Round(panY * input.ScaleY, MidpointRounding.AwayFromZero);
 
         var matrix = SKMatrix.CreateTranslation(-scaledPanX, -scaledPanY).PostConcat(input);
 

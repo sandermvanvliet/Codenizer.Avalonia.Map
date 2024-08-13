@@ -3,13 +3,11 @@
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SkiaSharp;
 
@@ -221,8 +219,6 @@ public class Map : Control
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        Debug.WriteLine($"Property {change.Property.Name} changed from {change.OldValue ?? "(null)"} to {change.NewValue}");
-        
         if (change.Property.Name == nameof(Bounds))
         {
             // Always construct a new Rect without translation,
@@ -284,8 +280,10 @@ public class Map : Control
             : e.Delta.Y > 0
                 ? step
                 : -step;
-
+        
         var newZoomLevel = (float)(ZoomLevel + increment);
+        
+        newZoomLevel = (float)Math.Round(newZoomLevel, 1);
 
         if (newZoomLevel < 0.1)
         {
