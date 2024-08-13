@@ -223,11 +223,6 @@ namespace MapTest
             Title = $"Selected {e.MapObject.Name}";
         }
 
-        private void Map_OnDiagnosticsCaptured(object? sender, MapDiagnosticsEventArgs e)
-        {
-            Debug.WriteLine($"Map bounds: {Map.Bounds}, Map ViewportBounds: {e.ViewportBounds}, window bounds: {Bounds}");
-        }
-
         private void WindowBase_OnActivated(object? sender, EventArgs e)
         {
             Squares1000();

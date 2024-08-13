@@ -92,9 +92,7 @@
 			         Margin="4"
 			         VerticalAlignment="Stretch"
 			         HorizontalAlignment="Stretch"
-			         MapObjectSelected="Map_OnMapObjectSelected"
-			         DiagnosticsCaptured="Map_OnDiagnosticsCaptured"
-			         LogDiagnostics="False"/>
+			         MapObjectSelected="Map_OnMapObjectSelected"/>
 		<!-- </Border> -->
 	</Grid>
 </Window>
