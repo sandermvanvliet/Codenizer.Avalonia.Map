@@ -7,7 +7,8 @@
         Width="1310"
         Height="1010"
         x:Class="MapTest.MainWindow"
-        Title="MapTest">
+        Title="MapTest"
+        Activated="WindowBase_OnActivated">
 	<Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="200" />
@@ -69,7 +70,7 @@
 			<ListBox Grid.Column="0"
                      Grid.ColumnSpan="2"
                      Grid.Row="7"
-                     Items="{Binding Path=MapObjects,ElementName=Map}"
+                     ItemsSource="{Binding Path=MapObjects,ElementName=Map}"
                      SelectionChanged="SelectingItemsControl_OnSelectionChanged"
                      VerticalAlignment="Stretch">
 				<ListBox.ItemTemplate>
@@ -79,15 +80,21 @@
 				</ListBox.ItemTemplate>
 			</ListBox>
 		</Grid>
-		<Border Grid.Column="1" Margin="4"
-                BorderBrush="Black"
-                BorderThickness="1"
-                VerticalAlignment="Stretch"
-                HorizontalAlignment="Stretch">
-			<map:Map VerticalAlignment="Stretch"
-                                HorizontalAlignment="Stretch"
-                                Name="Map"
-                                MapObjectSelected="Map_OnMapObjectSelected"/>
-		</Border>
+		<!-- <Border Grid.Column="1" Margin="4" -->
+  <!--               BorderBrush="Black" -->
+  <!--               BorderThickness="1" -->
+  <!--               VerticalAlignment="Top" -->
+  <!--               HorizontalAlignment="Left" -->
+  <!--               Width="800" -->
+  <!--               Height="800"> -->
+			<map:Map Name="Map"
+			         Grid.Column="1"
+			         Margin="4"
+			         VerticalAlignment="Stretch"
+			         HorizontalAlignment="Stretch"
+			         MapObjectSelected="Map_OnMapObjectSelected"
+			         DiagnosticsCaptured="Map_OnDiagnosticsCaptured"
+			         LogDiagnostics="False"/>
+		<!-- </Border> -->
 	</Grid>
 </Window>

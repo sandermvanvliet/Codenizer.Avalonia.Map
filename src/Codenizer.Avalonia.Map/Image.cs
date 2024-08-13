@@ -18,8 +18,7 @@ public class Image : MapObject
 
         Bounds = new SKRect(x, y, x + width, y + height);
 
-        var assetLoader = AvaloniaLocator.Current.GetService<IAssetLoader>();
-        var stream = assetLoader.Open(new Uri(resourceLocation));
+        var stream = AssetLoader.Open(new Uri(resourceLocation));
         _image = SKImage.FromEncodedData(stream);
     }
 

@@ -3,6 +3,7 @@
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
 using System;
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Codenizer.Avalonia.Map;
@@ -17,7 +18,7 @@ namespace MapTest
         {
             InitializeComponent();
         }
-
+        
         private void Squares1000()
         {
             using var updateScope = Map.BeginUpdate();
@@ -25,6 +26,11 @@ namespace MapTest
             Map.MapObjects.Add(new Square("greenSquare", 100, 100, 800, 800, "#00FF00"));
             Map.MapObjects.Add(new Square("blueSquare", 400, 400, 200, 200, "#0000FF"));
             Map.MapObjects.Add(new Square("yellowSquare", 700, 200, 100, 100, "#FFCC00"));
+            
+            Map.MapObjects.Add(new Square("lt", 1, 1, 20, 20, "#000000"));
+            Map.MapObjects.Add(new Square("rt", 979, 1, 20, 20, "#000000"));
+            Map.MapObjects.Add(new Square("lb", 1, 979, 20, 20, "#000000"));
+            Map.MapObjects.Add(new Square("rb", 979, 979, 20, 20, "#000000"));
 
             Map.MapObjects.Add(new Point("point1", 100, 100, 2, "#000000"));
             Map.MapObjects.Add(new Point("point2", 400, 400, 2, "#000000"));
@@ -158,9 +164,9 @@ namespace MapTest
 
         private void Button_OnClick(object? sender, RoutedEventArgs e)
         {
-            var zoomLevel = float.Parse(ZoomLevel.Text);
-            var zoomX = float.Parse(ZoomX.Text);
-            var zoomY = float.Parse(ZoomY.Text);
+            float.TryParse(ZoomLevel.Text, out var zoomLevel);
+            float.TryParse(ZoomX.Text, out var zoomX);
+            float.TryParse(ZoomY.Text, out var zoomY);
 
             Map.Zoom(zoomLevel, new Avalonia.Point(zoomX, zoomY));
         }
@@ -169,14 +175,16 @@ namespace MapTest
         {
             if (e.AddedItems.Count > 0)
             {
-                var x = e.AddedItems[0] as MapObject;
-                Map.ZoomExtent(x.Name);
+                if (e.AddedItems[0] is MapObject x)
+                {
+                    Map.ZoomExtent(x.Name);
+                }
             }
         }
 
         private void RadioButton_OnClick(object? sender, RoutedEventArgs e)
         {
-            var value = (sender as RadioButton).Content as string;
+            var value = (sender as RadioButton)?.Content as string ?? "";
 
             value = value.Trim().ToLower();
 
@@ -213,6 +221,16 @@ namespace MapTest
         private void Map_OnMapObjectSelected(object? sender, MapObjectSelectedEventArgs e)
         {
             Title = $"Selected {e.MapObject.Name}";
+        }
+
+        private void Map_OnDiagnosticsCaptured(object? sender, MapDiagnosticsEventArgs e)
+        {
+            Debug.WriteLine($"Map bounds: {Map.Bounds}, Map ViewportBounds: {e.ViewportBounds}, window bounds: {Bounds}");
+        }
+
+        private void WindowBase_OnActivated(object? sender, EventArgs e)
+        {
+            Squares1000();
         }
     }
 }
