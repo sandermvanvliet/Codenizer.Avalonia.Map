@@ -179,17 +179,6 @@ public class Map : Control
         }
 
         context.Custom(_renderOperation);
-        
-        // if (_renderTarget != null)
-        // {
-        //     RenderMap(context as ImmediateDrawingContext);
-        //
-        //     context
-        //         .DrawImage(
-        //             _renderTarget,
-        //             new Rect(0, 0, _renderTarget.PixelSize.Width, _renderTarget.PixelSize.Height),
-        //             new Rect(0, 0, Bounds.Width, Bounds.Height));
-        // }
     }
 
     protected override Size MeasureOverride(Size availableSize)
