@@ -80,19 +80,15 @@
 				</ListBox.ItemTemplate>
 			</ListBox>
 		</Grid>
-		<!-- <Border Grid.Column="1" Margin="4" -->
-  <!--               BorderBrush="Black" -->
-  <!--               BorderThickness="1" -->
-  <!--               VerticalAlignment="Top" -->
-  <!--               HorizontalAlignment="Left" -->
-  <!--               Width="800" -->
-  <!--               Height="800"> -->
+		<Border Grid.Column="1" Margin="4"
+                BorderBrush="Black"
+                BorderThickness="1"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch">
 			<map:Map Name="Map"
-			         Grid.Column="1"
-			         Margin="4"
 			         VerticalAlignment="Stretch"
 			         HorizontalAlignment="Stretch"
 			         MapObjectSelected="Map_OnMapObjectSelected"/>
-		<!-- </Border> -->
+		</Border>
 	</Grid>
 </Window>
