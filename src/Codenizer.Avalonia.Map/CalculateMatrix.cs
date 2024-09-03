@@ -304,11 +304,11 @@ public static class CalculateMatrix
     /// <returns>A new matrix</returns>
     public static SKMatrix ForPan(SKMatrix input, float panX, float panY, SKRect viewportBounds, SKRect mapBounds)
     {
-        var viewportWidthRoundedUp = Math.Round(viewportBounds.Width, MidpointRounding.ToPositiveInfinity);
-        var viewportHeightRoundedUp = Math.Round(viewportBounds.Height, MidpointRounding.ToPositiveInfinity);
+        var viewportWidthRoundedUp = Math.Ceiling(viewportBounds.Width);
+        var viewportHeightRoundedUp = Math.Ceiling(viewportBounds.Height);
 
-        var scaledMapWidthRoundedUp = Math.Round(mapBounds.Width * input.ScaleX, MidpointRounding.ToPositiveInfinity);
-        var scaledMapHeightRoundedUp =Math.Round(mapBounds.Height * input.ScaleY, MidpointRounding.ToPositiveInfinity);
+        var scaledMapWidthRoundedUp = Math.Ceiling(mapBounds.Width * input.ScaleX);
+        var scaledMapHeightRoundedUp =Math.Ceiling(mapBounds.Height * input.ScaleY);
         
         var scaledPanX = (float)Math.Round(panX * input.ScaleX, MidpointRounding.AwayFromZero);
         var scaledPanY = (float)Math.Round(panY * input.ScaleY, MidpointRounding.AwayFromZero);

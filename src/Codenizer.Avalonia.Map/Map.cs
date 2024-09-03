@@ -383,7 +383,10 @@ public class Map : Control
 
         var matchingObject = matchingObjects
             .Where(mo => mo.TightContains(mapPosition))
-            .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
+            .Select(mo => new { MapObject = mo, Size = mo.Bounds.Width, mo.Bounds.Height })
+            .OrderBy(x => x.Size)
+            .FirstOrDefault()
+            ?.MapObject;
 
         return matchingObject;
     }
