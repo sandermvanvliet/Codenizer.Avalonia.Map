@@ -330,7 +330,7 @@ public static class CalculateMatrix
         // Ensure that the edges of the map always snap to the edges of the viewport
         // so that there is no white space between the edge of the map and the edge
         // of the viewport
-        if (newBounds.Width >= viewportBounds.Width || newBounds.Height >= viewportBounds.Height)
+        if (newBounds.Width > viewportBounds.Width || newBounds.Height > viewportBounds.Height)
         {
             // It works like this:
             // let's say map bounds right is 800 and the viewport right is 1000,
