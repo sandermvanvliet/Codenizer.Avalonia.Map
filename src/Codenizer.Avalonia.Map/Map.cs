@@ -24,6 +24,7 @@ public class Map : Control
     public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
     public static readonly DirectProperty<Map, bool> AllowUserPanProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserPan), map => map.AllowUserPan, (map, value) => map.AllowUserPan = value);
     public static readonly DirectProperty<Map, bool> LogDiagnosticsProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(LogDiagnostics), map => map.LogDiagnostics, (map, value) => map.LogDiagnostics = value);
+    public static readonly DirectProperty<Map, float> ZoomLevelProperty = AvaloniaProperty.RegisterDirect<Map, float>(nameof(ZoomLevel), map => map.ZoomLevel, (map, value) => map.ZoomLevel = value);
 
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
@@ -66,9 +67,10 @@ public class Map : Control
         AffectsRender<Map>(AllowUserPanProperty);
         AffectsRender<Map>(AllowUserZoomProperty);
         AffectsRender<Map>(ShowCrossHairProperty);
+        AffectsRender<Map>(ZoomLevelProperty);
     }
 
-    private float ZoomLevel { get; set; } = 1;
+    public float ZoomLevel { get; set; } = 1;
 
     // This is a pass-through because otherwise we need to hook into
     // the collection changed events and propagate all changes to 
