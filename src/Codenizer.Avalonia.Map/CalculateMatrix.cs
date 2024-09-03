@@ -313,11 +313,15 @@ public static class CalculateMatrix
         var scaledPanX = (float)Math.Round(panX * input.ScaleX, MidpointRounding.AwayFromZero);
         var scaledPanY = (float)Math.Round(panY * input.ScaleY, MidpointRounding.AwayFromZero);
 
+        // If the scaled map width is less than or equal the viewport width
+        // then prevent panning because it'll only cause jitter.
         if (scaledMapWidthRoundedUp <= viewportWidthRoundedUp)
         {
             scaledPanX = 0;
         }
 
+        // If the scaled map height is less than or equal the viewport height
+        // then prevent panning because it'll only cause jitter.
         if (scaledMapHeightRoundedUp <= viewportHeightRoundedUp)
         {
             scaledPanY = 0;
