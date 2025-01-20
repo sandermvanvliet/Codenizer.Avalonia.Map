@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Sander van Vliet
+// Copyright (c) 2025 Codenizer BV
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
@@ -18,8 +18,7 @@ public class Image : MapObject
 
         Bounds = new SKRect(x, y, x + width, y + height);
 
-        var assetLoader = AvaloniaLocator.Current.GetService<IAssetLoader>();
-        var stream = assetLoader.Open(new Uri(resourceLocation));
+        var stream = AssetLoader.Open(new Uri(resourceLocation));
         _image = SKImage.FromEncodedData(stream);
     }
 

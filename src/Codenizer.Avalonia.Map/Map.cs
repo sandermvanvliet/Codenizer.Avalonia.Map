@@ -1,17 +1,14 @@
-// Copyright (c) 2023 Sander van Vliet
+// Copyright (c) 2025 Codenizer BV
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Skia;
+using Avalonia.VisualTree;
 using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
@@ -27,12 +24,11 @@ public class Map : Control
     public static readonly DirectProperty<Map, bool> AllowUserZoomProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserZoom), map => map.AllowUserZoom, (map, value) => map.AllowUserZoom = value);
     public static readonly DirectProperty<Map, bool> AllowUserPanProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(AllowUserPan), map => map.AllowUserPan, (map, value) => map.AllowUserPan = value);
     public static readonly DirectProperty<Map, bool> LogDiagnosticsProperty = AvaloniaProperty.RegisterDirect<Map, bool>(nameof(LogDiagnostics), map => map.LogDiagnostics, (map, value) => map.LogDiagnostics = value);
+    public static readonly DirectProperty<Map, float> ZoomLevelProperty = AvaloniaProperty.RegisterDirect<Map, float>(nameof(ZoomLevel), map => map.ZoomLevel, (map, value) => map.ZoomLevel = value);
 
     private bool _isUpdating;
     private static readonly object SyncRoot = new();
     private UpdateScope? _updateScope;
-    private RenderTargetBitmap? _renderTarget;
-    private ISkiaDrawingContextImpl? _skiaContext;
     private bool _allowUserZoom = true;
     private bool _allowUserPan = true;
     private bool _logDiagnostics;
@@ -46,6 +42,7 @@ public class Map : Control
     {
         //Background = new SolidColorBrush(Colors.Transparent);
         IsHitTestVisible = true;
+        ClipToBounds = true;
 
         _renderOperation = new MapRenderOperation();
         _renderOperation.MapObjects.CollectionChanged += (_, _) =>
@@ -64,9 +61,16 @@ public class Map : Control
                 DiagnosticsCaptured?.Invoke(this, new MapDiagnosticsEventArgs(args.RenderDuration, args.Scale, args.MapObjectsBounds, args.ViewportBounds, args.ExtentBounds));
             }
         };
+        
+        AffectsMeasure<Map>(MapObjectsProperty);
+        AffectsRender<Map>(MapObjectsProperty);
+        AffectsRender<Map>(AllowUserPanProperty);
+        AffectsRender<Map>(AllowUserZoomProperty);
+        AffectsRender<Map>(ShowCrossHairProperty);
+        AffectsRender<Map>(ZoomLevelProperty);
     }
 
-    public float ZoomLevel { get; private set; } = 1;
+    public float ZoomLevel { get; set; } = 1;
 
     // This is a pass-through because otherwise we need to hook into
     // the collection changed events and propagate all changes to 
@@ -77,7 +81,12 @@ public class Map : Control
     public ObservableCollection<MapObject> MapObjects
     {
         get => _renderOperation.MapObjects;
-        set => _renderOperation.MapObjects = value;
+        set
+        {
+            var original = _renderOperation.MapObjects;
+            _renderOperation.MapObjects = value;
+            RaisePropertyChanged(MapObjectsProperty, original, value);
+        }
     }
 
     public bool ShowCrossHair
@@ -87,7 +96,7 @@ public class Map : Control
         {
             if (value == _renderOperation.ShowCrossHair) return;
             _renderOperation.ShowCrossHair = value;
-            RaisePropertyChanged(ShowCrossHairProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+            RaisePropertyChanged(ShowCrossHairProperty, !value, value);
 
             InvalidateVisual();
         }
@@ -100,7 +109,7 @@ public class Map : Control
         {
             if (value == _allowUserZoom) return;
             _allowUserZoom = value;
-            RaisePropertyChanged(AllowUserZoomProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+            RaisePropertyChanged(AllowUserZoomProperty, !value, value);
 
             InvalidateVisual();
         }
@@ -113,7 +122,8 @@ public class Map : Control
         {
             if (value == _allowUserPan) return;
             _allowUserPan = value;
-            RaisePropertyChanged(AllowUserPanProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+            
+            RaisePropertyChanged(AllowUserPanProperty, !value, value);
 
             InvalidateVisual();
         }
@@ -126,7 +136,7 @@ public class Map : Control
         {
             if (value == _logDiagnostics) return;
             _logDiagnostics = value;
-            RaisePropertyChanged(LogDiagnosticsProperty, new Optional<bool>(!value), new BindingValue<bool>(value));
+            RaisePropertyChanged(LogDiagnosticsProperty, !value, value);
 
         }
     }
@@ -170,52 +180,35 @@ public class Map : Control
             return;
         }
 
-        if (_renderTarget != null)
-        {
-            RenderMap();
-
-            context
-                .DrawImage(
-                    _renderTarget,
-                    new Rect(0, 0, _renderTarget.PixelSize.Width, _renderTarget.PixelSize.Height),
-                    new Rect(0, 0, Bounds.Width, Bounds.Height));
-        }
+        context.Custom(_renderOperation);
     }
 
-    private void RenderMap()
-    {
-        if (_skiaContext != null)
-        {
-            _renderOperation.Render(_skiaContext);
-        }
-    }
-    
     protected override Size MeasureOverride(Size availableSize)
     {
         var desiredSize = new Size(availableSize.Width, availableSize.Height);
 
-        if (desiredSize.Width == Double.PositiveInfinity)
+        var visualParentBounds = this.GetVisualParent()?.Bounds;
+
+        var width = desiredSize.Width;
+        var height = desiredSize.Height;
+
+        if (double.IsPositiveInfinity(width) && visualParentBounds is not null && !double.IsPositiveInfinity(visualParentBounds.Value.Width))
         {
-            desiredSize = new Size(Parent.Width, desiredSize.Height);
+            width = visualParentBounds.Value.Width;
         }
 
-        if (desiredSize.Height == Double.PositiveInfinity)
+        if (double.IsPositiveInfinity(height) && visualParentBounds is not null && !double.IsPositiveInfinity(visualParentBounds.Value.Height))
         {
-            desiredSize = new Size(desiredSize.Width, Parent.Height);
+            height = visualParentBounds.Value.Height;
         }
 
+        desiredSize = new Size(width, height);
+        
         // Take all the space we can get
         return desiredSize;
     }
 
-    private void InitializeRenderTarget()
-    {
-        _renderTarget = new RenderTargetBitmap(new PixelSize((int)Bounds.Width, (int)Bounds.Height));
-        var context = _renderTarget.CreateDrawingContext(null);
-        _skiaContext = context as ISkiaDrawingContextImpl;
-    }
-
-    protected override void OnPropertyChanged<T>(AvaloniaPropertyChangedEventArgs<T> change)
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         if (change.Property.Name == nameof(Bounds))
         {
@@ -225,9 +218,9 @@ public class Map : Control
             // left/top translation of the control to the parent (window).
             // For rendering we don't want that translation to happen
             // as we're drawing _inside_ of the control, not the parent.
-            _renderOperation.Bounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
-
-            InitializeRenderTarget();
+            var newBounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
+            
+            _renderOperation.Bounds = newBounds;
 
             InvalidateVisual();
         }
@@ -278,8 +271,10 @@ public class Map : Control
             : e.Delta.Y > 0
                 ? step
                 : -step;
-
+        
         var newZoomLevel = (float)(ZoomLevel + increment);
+        
+        newZoomLevel = (float)Math.Round(newZoomLevel, 1);
 
         if (newZoomLevel < 0.1)
         {
@@ -390,7 +385,10 @@ public class Map : Control
 
         var matchingObject = matchingObjects
             .Where(mo => mo.TightContains(mapPosition))
-            .MinBy(mo => mo.Bounds.Width * mo.Bounds.Height);
+            .Select(mo => new { MapObject = mo, Size = mo.Bounds.Width, mo.Bounds.Height })
+            .OrderBy(x => x.Size)
+            .FirstOrDefault()
+            ?.MapObject;
 
         return matchingObject;
     }

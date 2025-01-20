@@ -1,17 +1,19 @@
-// Copyright (c) 2023 Sander van Vliet
+// Copyright (c) 2025 Codenizer BV
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Avalonia;
+using Avalonia.Media;
 using Avalonia.Platform;
+using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
-public class MapRenderOperation
+public class MapRenderOperation : ICustomDrawOperation
 {
     private static readonly SKColor CanvasBackgroundColor = SKColor.Parse("#FFFFFF");
     private readonly SKPaint _crossHairPaint;
@@ -77,22 +79,28 @@ public class MapRenderOperation
     public bool ShowCrossHair { get; set; } = false;
     public RenderPriority RenderPriority { get; set; } = new NoExplicitRenderPriority();
 
-    public void Render(IDrawingContextImpl context)
+    public bool HitTest(global::Avalonia.Point p)
     {
-        var canvas = (context as ISkiaDrawingContextImpl)?.SkCanvas;
+        return Bounds.Contains(p);
+    }
 
-        if (canvas == null)
+    public void Render(ImmediateDrawingContext context)
+    {
+        var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
+
+        if (leaseFeature == null)
         {
             return;
         }
+
+        using var lease = leaseFeature.Lease();
+        var canvas = lease.SkCanvas;
 
         var stopwatch = Stopwatch.StartNew();
 
         if (Bounds.Width > 0)
         {
-            canvas.Save();
             RenderCanvas(canvas);
-            canvas.Restore();
         }
 
         stopwatch.Stop();
@@ -105,7 +113,7 @@ public class MapRenderOperation
         canvas.Clear(CanvasBackgroundColor);
 
         canvas.Save();
-
+        
         if (MapObjects.Any())
         {
             SKMatrix matrix;
@@ -120,20 +128,21 @@ public class MapRenderOperation
                 matrix = _cachedMatrix.Value;
             }
 
-            canvas.SetMatrix(matrix);
+            canvas.Translate(matrix.TransX, matrix.TransY);
+            canvas.Scale(matrix.ScaleX, matrix.ScaleY);
 
             if (_logicalMatrix != canvas.TotalMatrix)
             {
-                _logicalMatrix = new SKMatrix(canvas.TotalMatrix.Values);
+                _logicalMatrix = new SKMatrix(matrix.Values); // Copy it, don't reference it
                 _logicalMatrixInverted = _logicalMatrix.Invert();
             }
-
+            
             foreach (var mapObject in MapObjects.OrderBy(mo => mo, RenderPriority))
             {
                 mapObject.Render(canvas);
             }
         }
-
+        
         canvas.Restore();
 
         if (ShowCrossHair)
@@ -141,8 +150,6 @@ public class MapRenderOperation
             RenderCrossHair(canvas);
             RenderAlternativeCrossHair(canvas);
         }
-
-        canvas.Flush();
     }
 
     private (SKMatrix matrix, SKRect newBounds) CalculateMatrixForZoomMode()
@@ -294,5 +301,21 @@ public class MapRenderOperation
         // Setting the cached matrix ensures that it
         // will be used on the next render operation.
         _cachedMatrix = CalculateMatrix.ForPan(_logicalMatrix, panX, panY, _viewportBounds, _mapObjectsBounds);
+    }
+
+    public void Dispose()
+    {
+        _crossHairPaint.Dispose();
+        _alternateCrossHairPaint.Dispose();
+    }
+
+    public bool Equals(ICustomDrawOperation? other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        return other.GetHashCode() == GetHashCode();
     }
 }

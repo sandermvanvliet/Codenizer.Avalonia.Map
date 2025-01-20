@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Sander van Vliet
+// Copyright (c) 2025 Codenizer BV
 // Licensed under GNU General Public License v3.0
 // See LICENSE or https://choosealicense.com/licenses/gpl-3.0/
 
@@ -6,7 +6,7 @@ using SkiaSharp;
 
 namespace Codenizer.Avalonia.Map;
 
-public class CalculateMatrix
+public static class CalculateMatrix
 {
     /// <summary>
     /// Calculate a matrix that attempts to maximize the element bounds within the viewport
@@ -217,7 +217,7 @@ public class CalculateMatrix
     /// Calculate a scale that will ensure that the inner bounds fit exactly to the outer bounds
     /// </summary>
     /// <remarks>When the inner bounds are taller than wide, the ratio is recalculated based on height thus ensuring the inner bounds will always fit</remarks>
-    public static float CalculateScale(SKRect inner, SKRect outer)
+    private static float CalculateScale(SKRect inner, SKRect outer)
     {
         var scale = outer.Width / inner.Width;
 
@@ -229,7 +229,7 @@ public class CalculateMatrix
             scale = outer.Height / inner.Height;
         }
 
-        return scale;
+        return (float)Math.Round(scale, 1);
     }
 
     /// <summary>
@@ -304,9 +304,29 @@ public class CalculateMatrix
     /// <returns>A new matrix</returns>
     public static SKMatrix ForPan(SKMatrix input, float panX, float panY, SKRect viewportBounds, SKRect mapBounds)
     {
-        var scaledPanX = panX * 2;
-        var scaledPanY = panY * 2;
+        var viewportWidthRoundedUp = Math.Ceiling(viewportBounds.Width);
+        var viewportHeightRoundedUp = Math.Ceiling(viewportBounds.Height);
 
+        var scaledMapWidthRoundedUp = Math.Ceiling(mapBounds.Width * input.ScaleX);
+        var scaledMapHeightRoundedUp =Math.Ceiling(mapBounds.Height * input.ScaleY);
+        
+        var scaledPanX = (float)Math.Round(panX * input.ScaleX, MidpointRounding.AwayFromZero);
+        var scaledPanY = (float)Math.Round(panY * input.ScaleY, MidpointRounding.AwayFromZero);
+
+        // If the scaled map width is less than or equal the viewport width
+        // then prevent panning because it'll only cause jitter.
+        if (scaledMapWidthRoundedUp <= viewportWidthRoundedUp)
+        {
+            scaledPanX = 0;
+        }
+
+        // If the scaled map height is less than or equal the viewport height
+        // then prevent panning because it'll only cause jitter.
+        if (scaledMapHeightRoundedUp <= viewportHeightRoundedUp)
+        {
+            scaledPanY = 0;
+        }
+        
         var matrix = SKMatrix.CreateTranslation(-scaledPanX, -scaledPanY).PostConcat(input);
 
         var newBounds = matrix.MapRect(mapBounds);
@@ -314,7 +334,7 @@ public class CalculateMatrix
         // Ensure that the edges of the map always snap to the edges of the viewport
         // so that there is no white space between the edge of the map and the edge
         // of the viewport
-        if (newBounds.Width >= viewportBounds.Width || newBounds.Height >= viewportBounds.Height)
+        if (newBounds.Width > viewportBounds.Width || newBounds.Height > viewportBounds.Height)
         {
             // It works like this:
             // let's say map bounds right is 800 and the viewport right is 1000,
