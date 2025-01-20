@@ -252,7 +252,7 @@ public static class CalculateMatrix
     /// <param name="inner">The bounds to check</param>
     /// <param name="outer">The bounds that <paramref name="inner"/> should fall inside</param>
     /// <returns><c>true</c> when the input is inside the outer bounds, otherwise <c>false</c></returns>
-    private static bool IsEntirelyWithin(SKRect inner, SKRect outer)
+    public static bool IsEntirelyWithin(SKRect inner, SKRect outer)
     {
         return inner.Width < outer.Width &&
                inner.Height < outer.Height;
